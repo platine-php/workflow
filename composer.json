@@ -1,0 +1,72 @@
+{
+    "name": "platine-php/workflow",
+    "description": "Platine Workflow is an activity-based workflow system including the definition and execution of workflow specifications",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["application", "website", "development", "framework", "php", "platine", "workflow", "node", "engine"],
+    "authors": [
+        {
+            "name": "NGUEREZA Tony",
+            "email": "nguerezatony@gmail.com",
+            "homepage": "http://www.iacademy.cf",
+            "role": "developer"
+        }
+    ],
+
+    "support": {
+        "issues": "https://github.com/platine-php/workflow/issues",
+        "source": "https://github.com/platine-php/workflow"
+    },
+	
+    "require": {
+        "php": "^7.4 || ^8",
+        "platine-php/logger": "1.0.x-dev",
+        "platine-php/orm": "1.0.x-dev"
+    },
+	
+    "require-dev": {
+        "phpmd/phpmd": "@stable",
+        "phpunit/phpunit": "^9.5",
+        "platine-php/dev": "1.0.x-dev",
+        "squizlabs/php_codesniffer": "3.*",
+        "phpstan/phpstan": "0.12.x-dev"
+    },
+    
+    "autoload": {
+        "psr-4":{
+            "Platine\\Workflow\\": "src/"
+        }
+    },
+    
+    "autoload-dev": {
+        "psr-4":{
+            "Platine\\Test\\": "tests"
+        }
+    },
+    
+    "config": {
+        "sort-packages": true
+    },
+    
+    "extra": {
+        "branch-alias": {
+            "dev-develop": "1.0.x-dev"
+        },
+        "platine": {
+            "migration": [
+                "migrations/rrrrrrr"
+            ]
+        }
+    },
+
+    "scripts": {
+        "test": "phpunit --colors=always",
+        "static": "phpstan analyze",
+        "check": "phpcs",
+        "check-fix": "phpcbf",
+        "analyze": "phpmd src xml phpmd.xml"
+    },
+	
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
