@@ -53,7 +53,6 @@ namespace Platine\Workflow\Graph;
  */
 class Link
 {
-   
     /**
      * Constants
     */
@@ -61,7 +60,7 @@ class Link
     public const LINE   = 2;
     public const DOTTED = 3;
     public const THICK  = 4;
-    
+
     /**
      * The link template
      */
@@ -70,32 +69,32 @@ class Link
         self::LINE   => [' --- ', '---|%s|'],
         self::DOTTED => ['-.->', '-. %s .-> '],
         self::THICK  => [' ==> ', ' == %s ==> '],
-    ]; 
-    
+    ];
+
     /**
      * The source node
      * @var Node
      */
     protected Node $sourceNode;
-    
+
     /**
      * The target node
      * @var Node
      */
     protected Node $targetNode;
-    
+
     /**
      * The link style
      * @var int
      */
     protected int $style = self::ARROW;
-    
+
     /**
      * The link text
      * @var string
      */
     protected string $text = '';
-    
+
     /**
      * Create new instance
      * @param Node $source
@@ -110,24 +109,6 @@ class Link
         $this->text = $text;
         $this->style = $style;
     }
-    
-    /**
-     * Return the link style
-     * @return int
-     */
-    public function getStyle(): int
-    {
-        return $this->style;
-    }
-
-    /**
-     * Return the link text
-     * @return string
-     */
-    public function getText(): string
-    {
-        return $this->text;
-    }
 
     /**
      * Set the link style
@@ -141,27 +122,16 @@ class Link
     }
 
     /**
-     * Set the link text
-     * @param string $text
-     * @return $this
-     */
-    public function setText(string $text): self
-    {
-        $this->text = $text;
-        return $this;
-    }
-
-    /**
      * Return the link string representation
      * @return string
      */
     public function __toString()
     {
         $line = self::TEMPLATES[$this->style][0];
-        if(!empty($this->text)){
+        if (!empty($this->text)) {
             $line = sprintf(self::TEMPLATES[$this->style][1], Helper::escape($this->text));
         }
-        
+
         return sprintf(
             '%s%s%s;',
             $this->sourceNode->getId(),
@@ -169,5 +139,4 @@ class Link
             $this->targetNode->getId()
         );
     }
-
 }

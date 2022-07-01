@@ -53,7 +53,6 @@ namespace Platine\Workflow\Graph;
  */
 class Node
 {
-   
     /**
      * Constants
     */
@@ -70,25 +69,25 @@ class Node
     public const DATABASE          = '[(%s)]';
     public const SUBROUTINE        = '[[%s]]';
     public const STADIUM           = '([%s])';
-    
+
     /**
      * The node id
      * @var string
      */
     protected string $id = '';
-    
+
     /**
      * The node title
      * @var string
      */
     protected string $title = '';
-    
+
     /**
      * The node form
      * @var string
      */
     protected string $form = self::ROUND;
-    
+
     /**
      * Create new instance
      * @param string $id
@@ -101,7 +100,7 @@ class Node
         $this->setTitle($title ?: $id);
         $this->form = $form;
     }
-    
+
     /**
      * Return the node id
      * @return string
@@ -109,24 +108,6 @@ class Node
     public function getId(): string
     {
         return $this->id;
-    }
-
-    /**
-     * Return the node title
-     * @return string
-     */
-    public function getTitle(): string
-    {
-        return $this->title;
-    }
-
-    /**
-     * Return the node form
-     * @return string
-     */
-    public function getForm(): string
-    {
-        return $this->form;
     }
 
     /**
@@ -141,27 +122,15 @@ class Node
     }
 
     /**
-     * Set the node form
-     * @param string $form
-     * @return $this
-     */
-    public function setForm(string $form): self
-    {
-        $this->form = $form;
-        return $this;
-    }
-
-    /**
      * Return the string representation
      * @return string
      */
     public function __toString()
     {
-        if(!empty($this->title)){
+        if (!empty($this->title)) {
             return $this->id . sprintf($this->form, Helper::escape($this->title)) . ';';
         }
-        
+
         return $this->id . ';';
     }
-
 }

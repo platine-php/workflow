@@ -68,9 +68,9 @@ class Role extends Entity
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
-         
+
          $mapper->filter('workflow', function (Query $q, $value) {
             $q->where('workflow_id')->is($value);
-        });
+         });
     }
 }

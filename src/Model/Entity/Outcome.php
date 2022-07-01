@@ -68,9 +68,9 @@ class Outcome extends Entity
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
-         
+
          $mapper->filter('node', function (Query $q, $value) {
             $q->where('node_id')->is($value);
-        });
+         });
     }
 }

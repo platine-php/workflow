@@ -53,7 +53,6 @@ namespace Platine\Workflow\Graph;
  */
 class Helper
 {
-   
     /**
      * Escape the given text
      * @param string $text
@@ -64,10 +63,10 @@ class Helper
         $cleanText = trim($text);
         $cleanHtmltext = htmlentities($cleanText, ENT_COMPAT);
         $finalText = str_replace(['&', '#lt;', '#gt;'], ['#', '<', '>'], $cleanHtmltext);
-        
+
         return sprintf('"%s"', $finalText);
     }
-    
+
     /**
      * Return the id of the given text
      * @param string $str

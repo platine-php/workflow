@@ -64,25 +64,29 @@ class Node extends Entity
          $mapper->table('workflow_nodes');
          $mapper->relation('role')->belongsTo(Role::class);
          $mapper->relation('workflow')->belongsTo(Workflow::class);
-         
+
          $mapper->useTimestamp();
          $mapper->casts([
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
-         
+
         $mapper->filter('status', function (Query $q, $value) {
             $q->where('status')->is($value);
         });
-        
+
         $mapper->filter('type', function (Query $q, $value) {
             $q->where('type')->is($value);
         });
-        
+
+        $mapper->filter('task_type', function (Query $q, $value) {
+            $q->where('task_type')->is($value);
+        });
+
         $mapper->filter('role', function (Query $q, $value) {
             $q->where('role_id')->is($value);
         });
-        
+
         $mapper->filter('workflow', function (Query $q, $value) {
             $q->where('workflow_id')->is($value);
         });

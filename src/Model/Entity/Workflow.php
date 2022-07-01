@@ -66,9 +66,9 @@ class Workflow extends Entity
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
-         
+
          $mapper->filter('status', function (Query $q, $value) {
             $q->where('status')->is($value);
-        });
+         });
     }
 }

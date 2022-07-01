@@ -56,230 +56,230 @@ class Graph
    /**
     * Constants
    */
-   public const TOP_BOTTOM = 'TB';
-   public const BOTTOM_TOP = 'BT';
-   public const LEFT_RIGHT = 'LR';
-   public const RIGHT_LEFT = 'RL'; 
-   
+    public const TOP_BOTTOM = 'TB';
+    public const BOTTOM_TOP = 'BT';
+    public const LEFT_RIGHT = 'LR';
+    public const RIGHT_LEFT = 'RL';
+
    /**
     * Space for each sub graph
     */
-   private const RENDER_SHIFT = 4;
-   
+    private const RENDER_SHIFT = 4;
+
    /**
     * The list of sub graph
     * @var array<Graph>
     */
-   protected array $subGraphs = [];
-   
+    protected array $subGraphs = [];
+
    /**
     * The list of nodes
     * @var array<string, Node>
     */
-   protected array $nodes = [];
-   
+    protected array $nodes = [];
+
    /**
     * The list of links
     * @var array<Link>
     */
-   protected array $links = [];
-   
+    protected array $links = [];
+
    /**
     * The graph parameter
     * @var array<string, mixed>
     */
-   protected array $params = [
+    protected array $params = [
        'title' => 'Graph',
        'direction' => self::TOP_BOTTOM,
-   ];
-   
+    ];
+
    /**
     * Style list
     * @var array<string>
     */
-   protected array $styles = [];
-   
+    protected array $styles = [];
+
    /**
     * Create new instance
     * @param array<string, mixed> $params
     */
-   public function __construct(array $params)
-   {
-       $this->setParams($params);
-   }
-   
+    public function __construct(array $params = [])
+    {
+        $this->setParams($params);
+    }
+
    /**
     * Render the graph to string representation
-    * @param boot $isMainGraph
+    * @param bool $isMainGraph
     * @param int $shift
     * @return string
     */
-   public function render(boot $isMainGraph = true, int $shift = 0): string
-   {
-       $spaces = str_repeat(' ', $shift);
-       $spacesSub = str_repeat(' ', $shift + self::RENDER_SHIFT);
-       $result = [];
-       if($isMainGraph){
-           $result = [sprintf('graph %s;', $this->params['direction'])];
-       } else {
-           $result = [sprintf(
-                '%ssubgraph %s', 
+    public function render(bool $isMainGraph = true, int $shift = 0): string
+    {
+        $spaces = str_repeat(' ', $shift);
+        $spacesSub = str_repeat(' ', $shift + self::RENDER_SHIFT);
+        /** @var array<string> */
+        $result = [];
+        if ($isMainGraph) {
+            $result = [sprintf('graph %s;', $this->params['direction'])];
+        } else {
+            $result = [sprintf(
+                '%ssubgraph %s',
                 $spaces,
                 Helper::escape($this->params['title'])
             )];
-       }
-       
-       if(count($this->nodes) > 0){
-           $tmp = [];
-           foreach ($this->nodes as $node){
-               $tmp[] = $spacesSub . $node;
-           }
-           $result = array_merge($result, $tmp);
-           if($isMainGraph){
-               $result[] = '';
-           }
-       }
-       
-       if(count($this->links) > 0){
-           $tmp = [];
-           foreach ($this->links as $link){
-               $tmp[] = $spacesSub . $link;
-           }
-           $result = array_merge($result, $tmp);
-           if($isMainGraph){
-               $result[] = '';
-           }
-       }
-       
-       foreach ($this->subGraphs as $subGraph){
-           $result = $subGraph->render(false, $shift + 4);
-       }
-       
-       if($isMainGraph && count($this->styles) > 0){
-           foreach ($this->styles as $style){
-               $result[] = $spaces . $style . ';';
-           }
-       }
-       
-       if(!$isMainGraph){
-           $result[] = $spaces . 'end';
-       }
-       
-       return implode(PHP_EOL, $result);
-   }
-   
+        }
+
+        if (count($this->nodes) > 0) {
+            $tmp = [];
+            foreach ($this->nodes as $node) {
+                $tmp[] = $spacesSub . $node;
+            }
+            $result = array_merge($result, $tmp);
+            if ($isMainGraph) {
+                $result[] = '';
+            }
+        }
+
+        if (count($this->links) > 0) {
+            $tmp = [];
+            foreach ($this->links as $link) {
+                $tmp[] = $spacesSub . $link;
+            }
+            $result = array_merge($result, $tmp);
+            if ($isMainGraph) {
+                $result[] = '';
+            }
+        }
+
+        foreach ($this->subGraphs as $subGraph) {
+            $result[] = $subGraph->render(false, $shift + 4);
+        }
+
+        if ($isMainGraph && count($this->styles) > 0) {
+            foreach ($this->styles as $style) {
+                $result[] = $spaces . $style . ';';
+            }
+        }
+
+        if (!$isMainGraph) {
+            $result[] = $spaces . 'end';
+        }
+
+        return implode(PHP_EOL, $result);
+    }
+
    /**
     * Add new node
     * @param Node $node
     * @return $this
     */
-   public function addNode(Node $node): self
-   {
-       $this->nodes[$node->getId()] = $node;
-       
-       return $this;
-   }
-   
+    public function addNode(Node $node): self
+    {
+        $this->nodes[$node->getId()] = $node;
+
+        return $this;
+    }
+
    /**
     * Add new link
     * @param Link $link
     * @return $this
     */
-   public function addLink(Link $link): self
-   {
-       $this->links[] = $link;
-       
-       return $this;
-   }
-   
+    public function addLink(Link $link): self
+    {
+        $this->links[] = $link;
+
+        return $this;
+    }
+
    /**
     * Add new style
     * @param string $style
     * @return $this
     */
-   public function addStyle(string $style): self
-   {
-       $this->styles[] = $style;
-       
-       return $this;
-   }
-   
+    public function addStyle(string $style): self
+    {
+        $this->styles[] = $style;
+
+        return $this;
+    }
+
    /**
     * Add new sub graph
     * @param Graph $subGraph
     * @return $this
     */
-   public function addSubGraph(Graph $subGraph): self
-   {
-       $this->subGraphs[] = $subGraph;
-       
-       return $this;
-   }
-   
+    public function addSubGraph(Graph $subGraph): self
+    {
+        $this->subGraphs[] = $subGraph;
+
+        return $this;
+    }
+
    /**
     * Return the string representation
     * @return string
     */
-   public function __toString()
-   {
-       return $this->render();
-   }
+    public function __toString()
+    {
+        return $this->render();
+    }
 
-   
+
    /**
     * Return the parameters
     * @return array<string, mixed>
     */
-   public function getParams(): array
-   {
-       return $this->params;
-   }
+    public function getParams(): array
+    {
+        return $this->params;
+    }
 
    /**
     * Set the parameters
     * @param array<string, mixed> $params
     * @return $this
     */
-   public function setParams(array $params)
-   {
-       $this->params = array_merge($this->params, $params);
-       return $this;
-   }
+    public function setParams(array $params)
+    {
+        $this->params = array_merge($this->params, $params);
+        return $this;
+    }
 
    /**
     * Return the list of sub graph
     * @return array<Graph>
     */
-   public function getSubGraphs(): array
-   {
-       return $this->subGraphs;
-   }
+    public function getSubGraphs(): array
+    {
+        return $this->subGraphs;
+    }
 
    /**
     * Return the list of node
     * @return array<string, Node>
     */
-   public function getNodes(): array
-   {
-       return $this->nodes;
-   }
+    public function getNodes(): array
+    {
+        return $this->nodes;
+    }
 
    /**
     * Return the list of link
     * @return array<Link>
     */
-   public function getLinks(): array
-   {
-       return $this->links;
-   }
+    public function getLinks(): array
+    {
+        return $this->links;
+    }
 
    /**
     * Return the list of style
-    * @return array<Style>
+    * @return array<string>
     */
-   public function getStyles(): array
-   {
-       return $this->styles;
-   }
-
+    public function getStyles(): array
+    {
+        return $this->styles;
+    }
 }

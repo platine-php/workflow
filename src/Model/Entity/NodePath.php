@@ -70,15 +70,15 @@ class NodePath extends Entity
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
-         
+
          $mapper->filter('from_node', function (Query $q, $value) {
             $q->where('from_node_id')->is($value);
-        });
-        
+         });
+
         $mapper->filter('to_node', function (Query $q, $value) {
             $q->where('to_node_id')->is($value);
         });
-        
+
         $mapper->filter('workflow', function (Query $q, $value) {
             $q->where('workflow_id')->is($value);
         });
