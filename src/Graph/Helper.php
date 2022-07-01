@@ -9,7 +9,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2020 Platine Workflow
- * Copyright (c) Alexander Kiryukhin
+ * Copyright (c) 2015 JBZoo Content Construction Kit (CCK)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,10 +30,51 @@
  * SOFTWARE.
  */
 
+/**
+ * @file Helper.php
+ *
+ * The Graph helper class
+ *
+ *  @package    Platine\Workflow\Graph
+ *  @author Platine Developers Team
+ *  @copyright  Copyright (c) 2020
+ *  @license    http://opensource.org/licenses/MIT  MIT License
+ *  @link   http://www.iacademy.cf
+ *  @version 1.0.0
+ *  @filesource
+ */
 declare(strict_types=1);
 
-namespace Platine\Workflow\Expression\Exception;
+namespace Platine\Workflow\Graph;
 
-class IncorrectNumberOfFunctionParametersException extends ExpressionException
+/**
+ * @class Helper
+ * @package Platine\Workflow\Graph
+ */
+class Helper
 {
+   
+    /**
+     * Escape the given text
+     * @param string $text
+     * @return string
+     */
+    public static function escape(string $text): string
+    {
+        $cleanText = trim($text);
+        $cleanHtmltext = htmlentities($cleanText, ENT_COMPAT);
+        $finalText = str_replace(['&', '#lt;', '#gt;'], ['#', '<', '>'], $cleanHtmltext);
+        
+        return sprintf('"%s"', $finalText);
+    }
+    
+    /**
+     * Return the id of the given text
+     * @param string $str
+     * @return string
+     */
+    public static function getId(string $str): string
+    {
+        return md5($str);
+    }
 }

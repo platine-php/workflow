@@ -9,7 +9,6 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2020 Platine Workflow
- * Copyright (c) Alexander Kiryukhin
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,10 +29,46 @@
  * SOFTWARE.
  */
 
+/**
+ * @file Workflow.php
+ *
+ * The Workflow Entity class
+ *
+ *  @package    Platine\Workflow\Model\Entity
+ *  @author Platine Developers Team
+ *  @copyright  Copyright (c) 2020
+ *  @license    http://opensource.org/licenses/MIT  MIT License
+ *  @link   http://www.iacademy.cf
+ *  @version 1.0.0
+ *  @filesource
+ */
 declare(strict_types=1);
 
-namespace Platine\Workflow\Expression\Exception;
+namespace Platine\Workflow\Model\Entity;
 
-class UnknownVariableException extends ExpressionException
+use Platine\Orm\Entity;
+use Platine\Orm\Mapper\EntityMapperInterface;
+use Platine\Orm\Query\Query;
+
+/**
+ * @class Workflow
+ * @package Platine\Workflow\Model\Entity
+ */
+class Workflow extends Entity
 {
+    /**
+    * {@inheritdoc}
+    */
+    public static function mapEntity(EntityMapperInterface $mapper): void
+    {
+         $mapper->useTimestamp();
+         $mapper->casts([
+            'created_at' => 'date',
+            'updated_at' => '?date',
+         ]);
+         
+         $mapper->filter('status', function (Query $q, $value) {
+            $q->where('status')->is($value);
+        });
+    }
 }
