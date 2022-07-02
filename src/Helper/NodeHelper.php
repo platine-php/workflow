@@ -136,9 +136,7 @@ class NodeHelper
         ->leftJoin(['workflow_roles' => 'target_role'], function (Join $j) {
             $j->on('target_node.workflow_role_id', 'target_role.id');
         })
-        ->filter([
-            'workflow' => $workflowId
-        ])
+        ->where('workflow_node_paths.workflow_id')->is($workflowId)
         ->orderBy(['source_node.type', 'target_node.type'])
         ->all();
     }
