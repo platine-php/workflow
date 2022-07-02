@@ -50,6 +50,7 @@ namespace Platine\Workflow\Helper;
 use Platine\Database\Query\Join;
 use Platine\Workflow\Enum\NodeType;
 use Platine\Workflow\Model\Entity\Node;
+use Platine\Workflow\Model\Entity\NodePath;
 use Platine\Workflow\Model\Repository\NodePathRepository;
 use Platine\Workflow\Model\Repository\NodeRepository;
 
@@ -87,38 +88,38 @@ class NodeHelper
 
     /**
      * Return the start node for the given workflow
-     * @param int $workflowId
+     * @param int $workflow
      * @param array $filters
      * @return Node|null
      */
-    public function getStartNode(int $workflowId, array $filters = []): ?Node
+    public function getStartNode(int $workflow, array $filters = []): ?Node
     {
         return $this->getNodeType(
-            $workflowId,
+            $workflow,
             array_merge($filters, ['type' => NodeType::START])
         );
     }
 
     /**
      * Return the end node for the given workflow
-     * @param int $workflowId
+     * @param int $workflow
      * @param array $filters
      * @return Node|null
      */
-    public function getEndNode(int $workflowId, array $filters = []): ?Node
+    public function getEndNode(int $workflow, array $filters = []): ?Node
     {
         return $this->getNodeType(
-            $workflowId,
+            $workflow,
             array_merge($filters, ['type' => NodeType::END])
         );
     }
 
     /**
      * Return the node paths for the given workflow
-     * @param int $workflowId
-     * @return array<mixed>
+     * @param int $workflow
+     * @return array<NodePath>
      */
-    public function getNodePaths(int $workflowId): array
+    public function getNodePaths(int $workflow): array
     {
         $query = $this->nodePathRepository->query();
         return $query->leftJoin('workflows', function (Join $j) {
@@ -136,7 +137,7 @@ class NodeHelper
         ->leftJoin(['workflow_roles' => 'target_role'], function (Join $j) {
             $j->on('target_node.workflow_role_id', 'target_role.id');
         })
-        ->where('workflow_node_paths.workflow_id')->is($workflowId)
+        ->where('workflow_node_paths.workflow_id')->is($workflow)
         ->orderBy(['source_node.type', 'target_node.type'])
         ->all([
             'workflow_node_paths.*',
@@ -150,6 +151,63 @@ class NodeHelper
             'target_node.task_type' => 'target_task_type',
             'target_node.type' => 'target_type',
             'target_node.status' => 'target_status',
+        ]);
+    }
+
+
+    /**
+     * Return the target node for the given source node
+     * @param int $workflow
+     * @param int $sourceNode
+     * @return NodePath|null
+     */
+    public function getNextNode(int $workflow, int $sourceNode): ?NodePath
+    {
+        $query = $this->nodePathRepository->query();
+        return $query->leftJoin('workflows', function (Join $j) {
+            $j->on('workflow_node_paths.workflow_id', 'workflows.id');
+        })
+        ->leftJoin(['workflow_nodes' => 'source_node'], function (Join $j) {
+            $j->on('workflow_node_paths.source_node_id', 'source_node.id');
+        })
+        ->leftJoin(['workflow_nodes' => 'target_node'], function (Join $j) {
+            $j->on('workflow_node_paths.target_node_id', 'target_node.id');
+        })
+        ->where('workflow_node_paths.workflow_id')->is($workflow)
+        ->where('workflow_node_paths.source_node_id')->is($sourceNode)
+        ->get([
+            'workflow_node_paths.*',
+            'target_node.name' => 'target_name',
+            'target_node.task_type' => 'target_task_type',
+            'target_node.type' => 'target_type',
+            'target_node.status' => 'target_status',
+        ]);
+    }
+
+    /**
+     * Return the list of node for decision
+     * @param int $workflow
+     * @param int $decisionNode
+     * @return array<NodePath>
+     */
+    public function getDecisionNodes(int $workflow, int $decisionNode): array
+    {
+        $query = $this->nodePathRepository->query();
+        return $query->leftJoin('workflows', function (Join $j) {
+            $j->on('workflow_node_paths.workflow_id', 'workflows.id');
+        })
+        ->leftJoin(['workflow_nodes' => 'source_node'], function (Join $j) {
+            $j->on('workflow_node_paths.source_node_id', 'source_node.id');
+        })
+        ->leftJoin(['workflow_nodes' => 'target_node'], function (Join $j) {
+            $j->on('workflow_node_paths.target_node_id', 'target_node.id');
+        })
+        ->where('workflow_node_paths.workflow_id')->is($workflow)
+        ->where('workflow_node_paths.source_node_id')->is($decisionNode)
+        ->orderBy('workflow_node_paths.sort_order')
+        ->all([
+            'workflow_node_paths.*',
+            'target_node.*',
         ]);
     }
 
