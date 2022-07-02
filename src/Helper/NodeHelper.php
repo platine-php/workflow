@@ -138,7 +138,19 @@ class NodeHelper
         })
         ->where('workflow_node_paths.workflow_id')->is($workflowId)
         ->orderBy(['source_node.type', 'target_node.type'])
-        ->all();
+        ->all([
+            'workflow_node_paths.*',
+            'source_role.name' => 'source_role_name',
+            'target_role.name' => 'target_role_name',
+            'source_node.name' => 'source_name',
+            'source_node.task_type' => 'source_task_type',
+            'source_node.type' => 'source_type',
+            'source_node.status' => 'source_status',
+            'target_node.name' => 'target_name',
+            'target_node.task_type' => 'target_task_type',
+            'target_node.type' => 'target_type',
+            'target_node.status' => 'target_status',
+        ]);
     }
 
     /**
