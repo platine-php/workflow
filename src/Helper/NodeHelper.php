@@ -284,8 +284,7 @@ class NodeHelper
         foreach ($paths as $nodePath) {
             $sourceNode = null;
             $targetNode = null;
-            $linkText = '';
-
+            
             //SOURCE NODE
             if ($this->isStartNode($nodePath->source_type)) {
                 $sourceNode = new GraphNode(
@@ -352,8 +351,6 @@ class NodeHelper
                 );
             }
 
-            $linkText = $nodePath->name;
-
             if (
                 $this->isUserNode($nodePath->source_task_type)
                 && !$this->isStartNode($nodePath->source_type)
@@ -375,7 +372,12 @@ class NodeHelper
             //ADD TO THE GRAPH
             $graph->addNode($sourceNode);
             $graph->addNode($targetNode);
-            $graph->addLink(new Link($sourceNode, $targetNode, $linkText, Link::ARROW));
+            $graph->addLink(new Link(
+                $sourceNode, 
+                $targetNode, 
+                (string) $nodePath->name, 
+                Link::ARROW
+            ));
         }
 
         return $graph->render();
