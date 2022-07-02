@@ -90,7 +90,7 @@ class Graph
     */
     protected array $params = [
        'title' => 'Graph',
-       'direction' => self::TOP_BOTTOM,
+       'direction' => self::LEFT_RIGHT,
     ];
 
    /**

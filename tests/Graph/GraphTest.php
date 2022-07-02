@@ -64,7 +64,7 @@ class GraphTest extends PlatineTestCase
 
         $o->addSubGraph($sg);
 
-        $expected = 'graph TB;
+        $expected = 'graph LR;
     7fc56270e7a70fa81a5935b72eacbe29("A");
     9d5ed678fe57bcca610140957afab571("B");
     3a3ea00cfc35332cedf6e5e9a32e94da;

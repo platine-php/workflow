@@ -9,7 +9,6 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2020 Platine Workflow
- * Copyright (c) 2015 JBZoo Content Construction Kit (CCK)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,8 +47,12 @@ declare(strict_types=1);
 namespace Platine\Workflow\Helper;
 
 use Platine\Database\Query\Join;
+use Platine\Workflow\Enum\NodeTaskType;
 use Platine\Workflow\Enum\NodeType;
 use Platine\Workflow\Enum\TaskStatus;
+use Platine\Workflow\Graph\Graph;
+use Platine\Workflow\Graph\Link;
+use Platine\Workflow\Graph\Node as GraphNode;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\NodePath;
 use Platine\Workflow\Model\Entity\Task;
@@ -240,7 +243,7 @@ class NodeHelper
         ->join('workflow_nodes', function (Join $j) {
             $j->on('workflow_tasks.workflow_node_id', 'workflow_nodes.id');
         })
-        ->leftJoin('workflow_outcomes', function (Join $j) {
+        ->join('workflow_outcomes', function (Join $j) {
             $j->on('workflow_outcomes.workflow_node_id', 'workflow_nodes.id')
                ->andOn('workflow_tasks.workflow_outcome_id', 'workflow_outcomes.id');
         })
@@ -251,6 +254,131 @@ class NodeHelper
         ->get([
             'workflow_outcomes.code' => 'code',
         ]);
+    }
+
+    /**
+     * Generate the graph (mermaid) for the given workflow
+     * @param int $workflow
+     * @return string
+     */
+    public function generateGraph(int $workflow): string
+    {
+        $paths = $this->getNodePaths($workflow);
+
+        if (empty($paths)) {
+            return '';
+        }
+
+        $graph = new Graph([]);
+        $styles = [
+            'startNodeStyle fill:#1767d1,stroke:#333,stroke-width:2px',
+            'endNodeStyle fill:#a019e2,stroke:#333,stroke-width:4px',
+            'decisionNodeStyle fill:#ae2,stroke:#333,stroke-width:2px',
+            'userNodeStyle fill:#e3a571,stroke:#333,stroke-width:2px',
+            'scriptServiceNodeStyle fill:#aef,stroke:#333,stroke-width:2px',
+        ];
+        foreach ($styles as $style) {
+            $graph->addStyle(sprintf('classDef %s', $style));
+        }
+
+        foreach ($paths as $nodePath) {
+            $sourceNode = null;
+            $targetNode = null;
+            $linkText = '';
+
+            //SOURCE NODE
+            if ($this->isStartNode($nodePath->source_type)) {
+                $sourceNode = new GraphNode(
+                    $nodePath->source_node_id,
+                    $nodePath->source_name,
+                    GraphNode::CIRCLE
+                );
+                $graph->addStyle(sprintf(
+                    'class %s startNodeStyle',
+                    $sourceNode->getId()
+                ));
+            } elseif ($this->isDecisionNode($nodePath->source_task_type)) {
+                $sourceNode = new GraphNode(
+                    $nodePath->source_node_id,
+                    $nodePath->source_name,
+                    GraphNode::RHOMBUS
+                );
+                $graph->addStyle(sprintf(
+                    'class %s decisionNodeStyle',
+                    $sourceNode->getId()
+                ));
+            } else {
+                $icon = 'fa:fa-users';
+                if ($this->isScriptServiceNode($nodePath->source_task_type)) {
+                    $icon = 'fa:fa-code';
+                }
+                $sourceNode = new GraphNode(
+                    $nodePath->source_node_id,
+                    sprintf('%s %s', $icon, $nodePath->source_name),
+                    GraphNode::ROUND
+                );
+            }
+
+            //TARGET NODE
+            if ($this->isEndNode($nodePath->target_task_type)) {
+                $targetNode = new GraphNode(
+                    $nodePath->target_node_id,
+                    $nodePath->target_name,
+                    GraphNode::CIRCLE
+                );
+                $graph->addStyle(sprintf(
+                    'class %s endNodeStyle',
+                    $targetNode->getId()
+                ));
+            } elseif ($this->isDecisionNode($nodePath->target_task_type)) {
+                $targetNode = new GraphNode(
+                    $nodePath->target_node_id,
+                    $nodePath->target_name,
+                    GraphNode::RHOMBUS
+                );
+                $graph->addStyle(sprintf(
+                    'class %s decisionNodeStyle',
+                    $sourceNode->getId()
+                ));
+            } else {
+                $icon = 'fa:fa-users';
+                if ($this->isScriptServiceNode($nodePath->target_task_type)) {
+                    $icon = 'fa:fa-code';
+                }
+                $targetNode = new GraphNode(
+                    $nodePath->target_node_id,
+                    sprintf('%s %s', $icon, $nodePath->target_name),
+                    GraphNode::ROUND
+                );
+            }
+
+            $linkText = $nodePath->name;
+
+            if (
+                $this->isUserNode($nodePath->source_task_type)
+                && !$this->isStartNode($nodePath->source_type)
+                && !$this->isEndNode($nodePath->source_type)
+            ) {
+                $graph->addStyle(sprintf(
+                    'class %s userNodeStyle',
+                    $sourceNode->getId()
+                ));
+            }
+
+            if ($this->isScriptServiceNode($nodePath->source_task_type)) {
+                $graph->addStyle(sprintf(
+                    'class %s scriptServiceNodeStyle',
+                    $sourceNode->getId()
+                ));
+            }
+
+            //ADD TO THE GRAPH
+            $graph->addNode($sourceNode);
+            $graph->addNode($targetNode);
+            $graph->addLink(new Link($sourceNode, $targetNode, $linkText, Link::ARROW));
+        }
+
+        return $graph->render();
     }
 
     /**
@@ -265,5 +393,55 @@ class NodeHelper
                                      ->findBy([
                                         'workflow_id' => $workflowId
                                      ]);
+    }
+
+    /**
+     * Whether the given type is for start node
+     * @param string $type
+     * @return bool
+     */
+    protected function isStartNode(string $type): bool
+    {
+        return NodeType::START === $type;
+    }
+
+    /**
+     * Whether the given type is for end node
+     * @param string $type
+     * @return bool
+     */
+    protected function isEndNode(string $type): bool
+    {
+        return NodeType::END === $type;
+    }
+
+    /**
+     * Whether the given type is for user node
+     * @param string $type
+     * @return bool
+     */
+    protected function isUserNode(string $type): bool
+    {
+        return NodeTaskType::USER === $type;
+    }
+
+    /**
+     * Whether the given type is for decision node
+     * @param string $type
+     * @return bool
+     */
+    protected function isDecisionNode(string $type): bool
+    {
+        return NodeTaskType::DECISION === $type;
+    }
+
+    /**
+     * Whether the given type is for script/service node
+     * @param string $type
+     * @return bool
+     */
+    protected function isScriptServiceNode(string $type): bool
+    {
+        return NodeTaskType::SCRIPT_SERVICE === $type;
     }
 }
