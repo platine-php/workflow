@@ -337,7 +337,7 @@ class NodeHelper
                 );
                 $graph->addStyle(sprintf(
                     'class %s decisionNodeStyle',
-                    $sourceNode->getId()
+                    $targetNode->getId()
                 ));
             } else {
                 $icon = 'fa:fa-users';
