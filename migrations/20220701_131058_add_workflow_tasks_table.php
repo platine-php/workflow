@@ -13,7 +13,9 @@ class AddWorkflowTasksTable20220701131058 extends AbstractMigration
     {
       //Action when migrate up
         $this->create('workflow_tasks', function (CreateTable $table) {
-            $table->integer('id')
+            //issue with query that return custom columns
+            // Using join the field "id" will be ambigus
+            $table->integer('workflow_task_id')
                   ->autoincrement()
                  ->primary();
 

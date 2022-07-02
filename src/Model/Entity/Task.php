@@ -63,6 +63,7 @@ class Task extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_tasks');
+         $mapper->primaryKey('workflow_task_id');
          $mapper->relation('node')->belongsTo(Node::class);
          $mapper->relation('instance')->belongsTo(Instance::class);
          $mapper->relation('outcome')->belongsTo(Outcome::class);

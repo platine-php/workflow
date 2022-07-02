@@ -49,10 +49,13 @@ namespace Platine\Workflow\Helper;
 
 use Platine\Database\Query\Join;
 use Platine\Workflow\Enum\NodeType;
+use Platine\Workflow\Enum\TaskStatus;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\NodePath;
+use Platine\Workflow\Model\Entity\Task;
 use Platine\Workflow\Model\Repository\NodePathRepository;
 use Platine\Workflow\Model\Repository\NodeRepository;
+use Platine\Workflow\Model\Repository\TaskRepository;
 
 /**
  * @class NodeHelper
@@ -72,18 +75,26 @@ class NodeHelper
      */
     protected NodePathRepository $nodePathRepository;
 
+    /**
+     * The task repository instance
+     * @var TaskRepository
+     */
+    protected TaskRepository $taskRepository;
 
     /**
      * Create new instance
      * @param NodeRepository $nodeRepository
      * @param NodePathRepository $nodePathRepository
+     * @param TaskRepository $taskRepository
      */
     public function __construct(
         NodeRepository $nodeRepository,
-        NodePathRepository $nodePathRepository
+        NodePathRepository $nodePathRepository,
+        TaskRepository $taskRepository
     ) {
         $this->nodeRepository = $nodeRepository;
         $this->nodePathRepository = $nodePathRepository;
+        $this->taskRepository = $taskRepository;
     }
 
     /**
@@ -207,7 +218,38 @@ class NodeHelper
         ->orderBy('workflow_node_paths.sort_order')
         ->all([
             'workflow_node_paths.*',
-            'target_node.*',
+            'target_node.name' => 'target_name',
+            'target_node.task_type' => 'target_task_type',
+            'target_node.type' => 'target_type',
+            'target_node.status' => 'target_status',
+        ]);
+    }
+
+    /**
+     * Return the outcome result for the given workflow instance
+     * @param int $instance
+     * @param int $node
+     * @return Task|null
+     */
+    public function getNodeOutcomeResult(int $instance, int $node): ?Task
+    {
+        $query = $this->taskRepository->query();
+        return $query->join('workflow_instances', function (Join $j) {
+            $j->on('workflow_tasks.workflow_instance_id', 'workflow_instances.id');
+        })
+        ->join('workflow_nodes', function (Join $j) {
+            $j->on('workflow_tasks.workflow_node_id', 'workflow_nodes.id');
+        })
+        ->leftJoin('workflow_outcomes', function (Join $j) {
+            $j->on('workflow_outcomes.workflow_node_id', 'workflow_nodes.id')
+               ->andOn('workflow_tasks.workflow_outcome_id', 'workflow_outcomes.id');
+        })
+        ->where('workflow_tasks.workflow_node_id')->is($node)
+        ->where('workflow_tasks.workflow_instance_id')->is($instance)
+        ->where('workflow_tasks.status')->is(TaskStatus::COMPLETED)
+        ->orderBy('workflow_tasks.end_date', 'DESC') //it's very important to add ORDER BY here
+        ->get([
+            'workflow_outcomes.code' => 'code',
         ]);
     }
 
