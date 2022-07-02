@@ -288,7 +288,7 @@ class NodeHelper
             //SOURCE NODE
             if ($this->isStartNode($nodePath->source_type)) {
                 $sourceNode = new GraphNode(
-                    $nodePath->source_node_id,
+                    (string) $nodePath->source_node_id,
                     $nodePath->source_name,
                     GraphNode::CIRCLE
                 );
@@ -298,7 +298,7 @@ class NodeHelper
                 ));
             } elseif ($this->isDecisionNode($nodePath->source_task_type)) {
                 $sourceNode = new GraphNode(
-                    $nodePath->source_node_id,
+                    (string) $nodePath->source_node_id,
                     $nodePath->source_name,
                     GraphNode::RHOMBUS
                 );
@@ -312,7 +312,7 @@ class NodeHelper
                     $icon = 'fa:fa-code';
                 }
                 $sourceNode = new GraphNode(
-                    $nodePath->source_node_id,
+                    (string) $nodePath->source_node_id,
                     sprintf('%s %s', $icon, $nodePath->source_name),
                     GraphNode::ROUND
                 );
@@ -321,7 +321,7 @@ class NodeHelper
             //TARGET NODE
             if ($this->isEndNode($nodePath->target_task_type)) {
                 $targetNode = new GraphNode(
-                    $nodePath->target_node_id,
+                    (string) $nodePath->target_node_id,
                     $nodePath->target_name,
                     GraphNode::CIRCLE
                 );
@@ -331,7 +331,7 @@ class NodeHelper
                 ));
             } elseif ($this->isDecisionNode($nodePath->target_task_type)) {
                 $targetNode = new GraphNode(
-                    $nodePath->target_node_id,
+                    (string) $nodePath->target_node_id,
                     $nodePath->target_name,
                     GraphNode::RHOMBUS
                 );
@@ -345,7 +345,7 @@ class NodeHelper
                     $icon = 'fa:fa-code';
                 }
                 $targetNode = new GraphNode(
-                    $nodePath->target_node_id,
+                    (string) $nodePath->target_node_id,
                     sprintf('%s %s', $icon, $nodePath->target_name),
                     GraphNode::ROUND
                 );
