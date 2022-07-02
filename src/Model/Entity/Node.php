@@ -84,7 +84,7 @@ class Node extends Entity
         });
 
         $mapper->filter('role', function (Query $q, $value) {
-            $q->where('role_id')->is($value);
+            $q->where('workflow_role_id')->is($value);
         });
 
         $mapper->filter('workflow', function (Query $q, $value) {

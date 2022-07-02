@@ -30,9 +30,9 @@
  */
 
 /**
- * @file Outcome.php
+ * @file Entity.php
  *
- * The Outcome Entity class
+ * The Workflow Object Entity class
  *
  *  @package    Platine\Workflow\Model\Entity
  *  @author Platine Developers Team
@@ -46,31 +46,25 @@ declare(strict_types=1);
 
 namespace Platine\Workflow\Model\Entity;
 
-use Platine\Orm\Entity;
+use Platine\Orm\Entity as OrmEntity;
 use Platine\Orm\Mapper\EntityMapperInterface;
-use Platine\Orm\Query\Query;
 
 /**
- * @class Outcome
+ * @class Entity
  * @package Platine\Workflow\Model\Entity
  */
-class Outcome extends Entity
+class Entity extends OrmEntity
 {
     /**
     * {@inheritdoc}
     */
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
-         $mapper->table('workflow_outcomes');
-         $mapper->relation('node')->belongsTo(Node::class);
+         $mapper->table('workflow_entities');
          $mapper->useTimestamp();
          $mapper->casts([
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
-
-         $mapper->filter('node', function (Query $q, $value) {
-            $q->where('workflow_node_id')->is($value);
-         });
     }
 }

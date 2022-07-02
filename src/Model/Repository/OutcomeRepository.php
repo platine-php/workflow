@@ -30,11 +30,11 @@
  */
 
 /**
- * @file Outcome.php
+ * @file OutcomeRepository.php
  *
- * The Outcome Entity class
+ * The Workflow Node Outcome Repository class
  *
- *  @package    Platine\Workflow\Model\Entity
+ *  @package    Platine\Workflow\Model\Repository
  *  @author Platine Developers Team
  *  @copyright  Copyright (c) 2020
  *  @license    http://opensource.org/licenses/MIT  MIT License
@@ -44,33 +44,24 @@
  */
 declare(strict_types=1);
 
-namespace Platine\Workflow\Model\Entity;
+namespace Platine\Workflow\Model\Repository;
 
-use Platine\Orm\Entity;
-use Platine\Orm\Mapper\EntityMapperInterface;
-use Platine\Orm\Query\Query;
+use Platine\Orm\EntityManager;
+use Platine\Orm\Repository;
+use Platine\Workflow\Model\Entity\Outcome;
 
 /**
- * @class Outcome
- * @package Platine\Workflow\Model\Entity
+ * @class OutcomeRepository
+ * @package Platine\Workflow\Model\Repository
  */
-class Outcome extends Entity
+class OutcomeRepository extends Repository
 {
-    /**
-    * {@inheritdoc}
-    */
-    public static function mapEntity(EntityMapperInterface $mapper): void
+   /**
+   * Create new instance
+   * @param EntityManager $manager
+   */
+    public function __construct(EntityManager $manager)
     {
-         $mapper->table('workflow_outcomes');
-         $mapper->relation('node')->belongsTo(Node::class);
-         $mapper->useTimestamp();
-         $mapper->casts([
-            'created_at' => 'date',
-            'updated_at' => '?date',
-         ]);
-
-         $mapper->filter('node', function (Query $q, $value) {
-            $q->where('workflow_node_id')->is($value);
-         });
+        parent::__construct($manager, Outcome::class);
     }
 }

@@ -30,9 +30,9 @@
  */
 
 /**
- * @file Outcome.php
+ * @file Result.php
  *
- * The Outcome Entity class
+ * The Workflow Result Entity class
  *
  *  @package    Platine\Workflow\Model\Entity
  *  @author Platine Developers Team
@@ -51,26 +51,45 @@ use Platine\Orm\Mapper\EntityMapperInterface;
 use Platine\Orm\Query\Query;
 
 /**
- * @class Outcome
+ * @class Result
  * @package Platine\Workflow\Model\Entity
  */
-class Outcome extends Entity
+class Result extends Entity
 {
     /**
     * {@inheritdoc}
     */
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
-         $mapper->table('workflow_outcomes');
+         $mapper->table('workflow_results');
          $mapper->relation('node')->belongsTo(Node::class);
-         $mapper->useTimestamp();
+         $mapper->relation('instance')->belongsTo(Instance::class);
          $mapper->casts([
-            'created_at' => 'date',
-            'updated_at' => '?date',
+            'date' => 'date',
          ]);
 
          $mapper->filter('node', function (Query $q, $value) {
             $q->where('workflow_node_id')->is($value);
          });
+
+         $mapper->filter('type', function (Query $q, $value) {
+            $q->where('type')->is($value);
+         });
+
+         $mapper->filter('datatype', function (Query $q, $value) {
+            $q->where('datatype')->is($value);
+         });
+
+         $mapper->filter('instance', function (Query $q, $value) {
+            $q->where('workflow_instance_id')->is($value);
+         });
+
+        $mapper->filter('start_date', function (Query $q, $value) {
+            $q->where('date')->gte($value);
+        });
+
+        $mapper->filter('end_date', function (Query $q, $value) {
+            $q->where('date')->lte($value);
+        });
     }
 }

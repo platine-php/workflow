@@ -49,6 +49,7 @@ namespace Platine\Workflow\Model\Entity;
 use Platine\Orm\Entity;
 use Platine\Orm\Mapper\EntityMapperInterface;
 use Platine\Orm\Query\Query;
+use Platine\Orm\Relation\ForeignKey;
 
 /**
  * @class NodePath
@@ -62,21 +63,24 @@ class NodePath extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_node_paths');
-         $mapper->relation('from_node')->belongsTo(Node::class);
-         $mapper->relation('to_node')->belongsTo(Node::class);
-         $mapper->table('workflow_nodes');
+         $mapper->relation('source_node')->belongsTo(Node::class, new ForeignKey([
+            'id' => 'source_node_id'
+         ]));
+         $mapper->relation('target_node')->belongsTo(Node::class, new ForeignKey([
+            'id' => 'target_node_id'
+         ]));
          $mapper->useTimestamp();
          $mapper->casts([
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
 
-         $mapper->filter('from_node', function (Query $q, $value) {
-            $q->where('from_node_id')->is($value);
+         $mapper->filter('source_node', function (Query $q, $value) {
+            $q->where('source_node_id')->is($value);
          });
 
-        $mapper->filter('to_node', function (Query $q, $value) {
-            $q->where('to_node_id')->is($value);
+        $mapper->filter('target_node', function (Query $q, $value) {
+            $q->where('target_node_id')->is($value);
         });
 
         $mapper->filter('workflow', function (Query $q, $value) {

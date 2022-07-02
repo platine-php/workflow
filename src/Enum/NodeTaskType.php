@@ -9,6 +9,7 @@
  * This content is released under the MIT License (MIT)
  *
  * Copyright (c) 2020 Platine Workflow
+ * Copyright (c) 2015 JBZoo Content Construction Kit (CCK)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,11 +31,11 @@
  */
 
 /**
- * @file Outcome.php
+ * @file NodeType.php
  *
- * The Outcome Entity class
+ * The Workflow node task type class
  *
- *  @package    Platine\Workflow\Model\Entity
+ *  @package    Platine\Workflow\Enum
  *  @author Platine Developers Team
  *  @copyright  Copyright (c) 2020
  *  @license    http://opensource.org/licenses/MIT  MIT License
@@ -44,33 +45,26 @@
  */
 declare(strict_types=1);
 
-namespace Platine\Workflow\Model\Entity;
-
-use Platine\Orm\Entity;
-use Platine\Orm\Mapper\EntityMapperInterface;
-use Platine\Orm\Query\Query;
+namespace Platine\Workflow\Enum;
 
 /**
- * @class Outcome
- * @package Platine\Workflow\Model\Entity
+ * @class NodeTaskType
+ * @package Platine\Workflow\Enum
  */
-class Outcome extends Entity
+class NodeTaskType
 {
     /**
-    * {@inheritdoc}
-    */
-    public static function mapEntity(EntityMapperInterface $mapper): void
-    {
-         $mapper->table('workflow_outcomes');
-         $mapper->relation('node')->belongsTo(Node::class);
-         $mapper->useTimestamp();
-         $mapper->casts([
-            'created_at' => 'date',
-            'updated_at' => '?date',
-         ]);
+     * User Node
+     */
+    public const USER = 'U';
 
-         $mapper->filter('node', function (Query $q, $value) {
-            $q->where('workflow_node_id')->is($value);
-         });
-    }
+    /**
+     * Decision Node
+     */
+    public const DECISION = 'D';
+
+    /**
+     * Script/Service Node
+     */
+    public const SCRIPT_SERVICE = 'S';
 }

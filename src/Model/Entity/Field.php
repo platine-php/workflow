@@ -30,9 +30,9 @@
  */
 
 /**
- * @file Outcome.php
+ * @file Field.php
  *
- * The Outcome Entity class
+ * The Workflow entity fields Entity class
  *
  *  @package    Platine\Workflow\Model\Entity
  *  @author Platine Developers Team
@@ -46,31 +46,39 @@ declare(strict_types=1);
 
 namespace Platine\Workflow\Model\Entity;
 
-use Platine\Orm\Entity;
+use Platine\Orm\Entity as OrmEntity;
 use Platine\Orm\Mapper\EntityMapperInterface;
 use Platine\Orm\Query\Query;
 
 /**
- * @class Outcome
+ * @class Field
  * @package Platine\Workflow\Model\Entity
  */
-class Outcome extends Entity
+class Field extends OrmEntity
 {
     /**
     * {@inheritdoc}
     */
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
-         $mapper->table('workflow_outcomes');
-         $mapper->relation('node')->belongsTo(Node::class);
+         $mapper->table('workflow_entity_fields');
+         $mapper->relation('entity')->belongsTo(Entity::class);
          $mapper->useTimestamp();
          $mapper->casts([
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
 
-         $mapper->filter('node', function (Query $q, $value) {
-            $q->where('workflow_node_id')->is($value);
+         $mapper->filter('entity', function (Query $q, $value) {
+            $q->where('workflow_entity_id')->is($value);
+         });
+
+         $mapper->filter('relation', function (Query $q, $value) {
+            $q->where('relation')->is($value);
+         });
+
+         $mapper->filter('type', function (Query $q, $value) {
+            $q->where('type')->is($value);
          });
     }
 }

@@ -30,9 +30,9 @@
  */
 
 /**
- * @file Outcome.php
+ * @file Condition.php
  *
- * The Outcome Entity class
+ * The Workflow Condition Entity class
  *
  *  @package    Platine\Workflow\Model\Entity
  *  @author Platine Developers Team
@@ -51,26 +51,26 @@ use Platine\Orm\Mapper\EntityMapperInterface;
 use Platine\Orm\Query\Query;
 
 /**
- * @class Outcome
+ * @class Condition
  * @package Platine\Workflow\Model\Entity
  */
-class Outcome extends Entity
+class Condition extends Entity
 {
     /**
     * {@inheritdoc}
     */
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
-         $mapper->table('workflow_outcomes');
-         $mapper->relation('node')->belongsTo(Node::class);
+         $mapper->table('workflow_conditions');
+         $mapper->relation('condition_group')->belongsTo(ConditionGroup::class);
          $mapper->useTimestamp();
          $mapper->casts([
             'created_at' => 'date',
             'updated_at' => '?date',
          ]);
 
-         $mapper->filter('node', function (Query $q, $value) {
-            $q->where('workflow_node_id')->is($value);
+         $mapper->filter('condition_group', function (Query $q, $value) {
+            $q->where('workflow_condition_group_id')->is($value);
          });
     }
 }

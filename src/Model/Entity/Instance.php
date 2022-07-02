@@ -30,9 +30,9 @@
  */
 
 /**
- * @file Outcome.php
+ * @file Instance.php
  *
- * The Outcome Entity class
+ * The Workflow Instance Entity class
  *
  *  @package    Platine\Workflow\Model\Entity
  *  @author Platine Developers Team
@@ -46,31 +46,60 @@ declare(strict_types=1);
 
 namespace Platine\Workflow\Model\Entity;
 
+use Platine\Database\Query\WhereStatement;
 use Platine\Orm\Entity;
 use Platine\Orm\Mapper\EntityMapperInterface;
 use Platine\Orm\Query\Query;
 
 /**
- * @class Outcome
+ * @class Instance
  * @package Platine\Workflow\Model\Entity
  */
-class Outcome extends Entity
+class Instance extends Entity
 {
     /**
     * {@inheritdoc}
     */
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
-         $mapper->table('workflow_outcomes');
-         $mapper->relation('node')->belongsTo(Node::class);
-         $mapper->useTimestamp();
+         $mapper->table('workflow_instances');
+         $mapper->relation('workflow')->belongsTo(Workflow::class);
+         //TODO change it in sub class
+         $mapper->relation('user')->belongsTo(Entity::class);
          $mapper->casts([
-            'created_at' => 'date',
-            'updated_at' => '?date',
+            'start_date' => 'date',
+            'end_date' => '?date',
          ]);
 
-         $mapper->filter('node', function (Query $q, $value) {
-            $q->where('workflow_node_id')->is($value);
+         $mapper->filter('status', function (Query $q, $value) {
+            $q->where('status')->is($value);
          });
+
+        $mapper->filter('entity_id', function (Query $q, $value) {
+            $q->where('entity_id')->is($value);
+        });
+
+        $mapper->filter('entity_name', function (Query $q, $value) {
+            $q->where('entity_name')->is($value);
+        });
+
+        $mapper->filter('start_date', function (Query $q, $value) {
+            $q->where('start_date')->gte($value);
+        });
+
+        $mapper->filter('end_date', function (Query $q, $value) {
+            $q->where(function (WhereStatement $where) use ($value) {
+                $where->where('end_date')->is($value)
+                ->orWhere('end_date')->isNull();
+            });
+        });
+
+        $mapper->filter('user', function (Query $q, $value) {
+            $q->where('user_id')->is($value);
+        });
+
+        $mapper->filter('workflow', function (Query $q, $value) {
+            $q->where('workflow_id')->is($value);
+        });
     }
 }

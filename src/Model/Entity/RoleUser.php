@@ -30,9 +30,9 @@
  */
 
 /**
- * @file Outcome.php
+ * @file RoleUser.php
  *
- * The Outcome Entity class
+ * The Workflow Role User Entity class
  *
  *  @package    Platine\Workflow\Model\Entity
  *  @author Platine Developers Team
@@ -51,26 +51,32 @@ use Platine\Orm\Mapper\EntityMapperInterface;
 use Platine\Orm\Query\Query;
 
 /**
- * @class Outcome
+ * @class RoleUser
  * @package Platine\Workflow\Model\Entity
  */
-class Outcome extends Entity
+class RoleUser extends Entity
 {
     /**
     * {@inheritdoc}
     */
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
-         $mapper->table('workflow_outcomes');
-         $mapper->relation('node')->belongsTo(Node::class);
-         $mapper->useTimestamp();
-         $mapper->casts([
-            'created_at' => 'date',
-            'updated_at' => '?date',
-         ]);
+         $mapper->table('workflow_roles_users');
+         $mapper->relation('role')->belongsTo(Role::class);
+         $mapper->relation('instance')->belongsTo(Instance::class);
+         //TODO change it in sub class
+         $mapper->relation('user')->belongsTo(Entity::class);
 
-         $mapper->filter('node', function (Query $q, $value) {
-            $q->where('workflow_node_id')->is($value);
+         $mapper->filter('user', function (Query $q, $value) {
+            $q->where('user_id')->is($value);
          });
+
+        $mapper->filter('role', function (Query $q, $value) {
+            $q->where('workflow_role_id')->is($value);
+        });
+
+        $mapper->filter('instance', function (Query $q, $value) {
+            $q->where('workflow_instance_id')->is($value);
+        });
     }
 }

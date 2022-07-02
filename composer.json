@@ -54,7 +54,7 @@
         },
         "platine": {
             "migration": [
-                "migrations/rrrrrrr"
+                "migrations/"
             ]
         }
     },
