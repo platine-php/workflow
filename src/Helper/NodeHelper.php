@@ -319,7 +319,7 @@ class NodeHelper
             }
 
             //TARGET NODE
-            if ($this->isEndNode($nodePath->target_task_type)) {
+            if ($this->isEndNode($nodePath->target_type)) {
                 $targetNode = new GraphNode(
                     (string) $nodePath->target_node_id,
                     $nodePath->target_name,
