@@ -13,7 +13,9 @@ class AddWorkflowNodePathsTable20220701131014 extends AbstractMigration
     {
       //Action when migrate up
         $this->create('workflow_node_paths', function (CreateTable $table) {
-            $table->integer('id')
+            //issue with query that return custom columns
+            // Using join the field "id" will be ambigus
+            $table->integer('workflow_node_path_id')
                   ->autoincrement()
                  ->primary();
 
