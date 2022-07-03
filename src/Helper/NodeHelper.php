@@ -203,7 +203,7 @@ class NodeHelper
      */
     public function getNodePaths(int $workflow): array
     {
-        return $this->nodePathRepository
+        return $this->nodePathRepository->query()
             ->with([
                 'workflow',
                 'source_node.role',
