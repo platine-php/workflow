@@ -97,18 +97,6 @@ class Workflow
     protected Instance $instance;
 
     /**
-     * The entity id value
-     * @var mixed
-     */
-    protected $entityId;
-
-    /**
-     * The entity name value
-     * @var string
-     */
-    protected string $entityName = '';
-
-    /**
      * The workflow current node
      * @var Node|null
      */
@@ -157,28 +145,6 @@ class Workflow
     public function setInstance(Instance $instance): self
     {
         $this->instance = $instance;
-        return $this;
-    }
-
-    /**
-     * Set the entity id
-     * @param mixed $entityId
-     * @return $this
-     */
-    public function setEntityId($entityId): self
-    {
-        $this->entityId = $entityId;
-        return $this;
-    }
-
-    /**
-     * Set the entity name
-     * @param string $entityName
-     * @return $this
-     */
-    public function setEntityName(string $entityName): self
-    {
-        $this->entityName = $entityName;
         return $this;
     }
 
