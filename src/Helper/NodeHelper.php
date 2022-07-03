@@ -50,7 +50,6 @@ use Platine\Database\Query\Join;
 use Platine\Workflow\Enum\NodeTaskType;
 use Platine\Workflow\Enum\NodeType;
 use Platine\Workflow\Enum\TaskStatus;
-use Platine\Workflow\Model\Entity\Condition;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\NodePath;
 use Platine\Workflow\Model\Entity\Result;
@@ -265,12 +264,11 @@ class NodeHelper
     {
         return $this->conditionGroupRepository->with([
             'node',
-            'conditions'
         ])
         ->filters([
             'node' => $node,
         ])
-        ->orderBy(['sort_order', 'workflow_conditions.sort_order' => 'c_sort_order'])
+        ->orderBy('sort_order')
         ->all();
     }
 

@@ -49,7 +49,6 @@ namespace Platine\Workflow\Helper;
 use Platine\Workflow\Graph\Graph;
 use Platine\Workflow\Graph\Link;
 use Platine\Workflow\Graph\Node as GraphNode;
-use Platine\Workflow\Model\Entity\NodePath;
 
 /**
  * @class GraphHelper
