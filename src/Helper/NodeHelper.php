@@ -203,7 +203,15 @@ class NodeHelper
      */
     public function getNodePaths(int $workflow): array
     {
-        $query = $this->nodePathRepository->query();
+        return $this->nodePathRepository
+            ->with([
+                'workflow',
+                'source_node.role',
+                'target_node.role',
+            ])
+            ->where('workflow_node_paths.workflow_id')->is($workflow)
+            ->all();
+        /*
         return $query->leftJoin('workflows', function (Join $j) {
             $j->on('workflow_node_paths.workflow_id', 'workflows.id');
         })
@@ -234,6 +242,8 @@ class NodeHelper
             'target_node.type' => 'target_type',
             'target_node.status' => 'target_status',
         ]);
+         
+         */
     }
 
 
