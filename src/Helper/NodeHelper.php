@@ -404,6 +404,7 @@ class NodeHelper
     protected function getNodeType(int $workflow, array $filters = []): ?Node
     {
         return $this->nodeRepository->filters($filters)
+                                     ->with('workflow')
                                      ->findBy([
                                         'workflow_id' => $workflow
                                      ]);
