@@ -91,28 +91,28 @@ class GraphHelper
             //SOURCE NODE
             $sourceNode = $this->buildNode(
                 $graph,
-                (string) $nodePath->source_node_id,
-                $nodePath->source_name,
-                $nodePath->source_type,
-                $nodePath->source_task_type,
+                (string) $nodePath->source_node->id,
+                $nodePath->source_node->name,
+                $nodePath->source_node->type,
+                $nodePath->source_node->task_type,
                 true
             );
 
             //TARGET NODE
             $targetNode = $this->buildNode(
                 $graph,
-                (string) $nodePath->target_node_id,
-                $nodePath->target_name,
-                $nodePath->target_type,
-                $nodePath->target_task_type,
+                (string) $nodePath->target_node->id,
+                $nodePath->target_node->name,
+                $nodePath->target_node->type,
+                $nodePath->target_node->task_type,
                 false
             );
 
             $this->handlerSourceNodeForUserScript(
                 $graph,
                 $sourceNode,
-                $nodePath->source_type,
-                $nodePath->source_task_type
+                $nodePath->source_node->type,
+                $nodePath->source_node->task_type
             );
 
             //ADD TO THE GRAPH
