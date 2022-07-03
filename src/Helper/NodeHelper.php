@@ -50,6 +50,7 @@ use Platine\Database\Query\Join;
 use Platine\Workflow\Enum\NodeTaskType;
 use Platine\Workflow\Enum\NodeType;
 use Platine\Workflow\Enum\TaskStatus;
+use Platine\Workflow\Model\Entity\Action;
 use Platine\Workflow\Model\Entity\Condition;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\NodePath;
@@ -211,39 +212,6 @@ class NodeHelper
             ])
             ->where('workflow_node_paths.workflow_id')->is($workflow)
             ->all();
-        /*
-        return $query->leftJoin('workflows', function (Join $j) {
-            $j->on('workflow_node_paths.workflow_id', 'workflows.id');
-        })
-        ->leftJoin(['workflow_nodes' => 'source_node'], function (Join $j) {
-            $j->on('workflow_node_paths.source_node_id', 'source_node.id');
-        })
-        ->leftJoin(['workflow_nodes' => 'target_node'], function (Join $j) {
-            $j->on('workflow_node_paths.target_node_id', 'target_node.id');
-        })
-        ->leftJoin(['workflow_roles' => 'source_role'], function (Join $j) {
-            $j->on('source_node.workflow_role_id', 'source_role.id');
-        })
-        ->leftJoin(['workflow_roles' => 'target_role'], function (Join $j) {
-            $j->on('target_node.workflow_role_id', 'target_role.id');
-        })
-        ->where('workflow_node_paths.workflow_id')->is($workflow)
-        ->orderBy(['source_node.type', 'target_node.type'])
-        ->all([
-            'workflow_node_paths.*',
-            'source_role.name' => 'source_role_name',
-            'target_role.name' => 'target_role_name',
-            'source_node.name' => 'source_name',
-            'source_node.task_type' => 'source_task_type',
-            'source_node.type' => 'source_type',
-            'source_node.status' => 'source_status',
-            'target_node.name' => 'target_name',
-            'target_node.task_type' => 'target_task_type',
-            'target_node.type' => 'target_type',
-            'target_node.status' => 'target_status',
-        ]);
-         
-         */
     }
 
 
@@ -293,6 +261,21 @@ class NodeHelper
         return $this->conditionRepository->query()
         ->orderBy('sort_order')
         ->where('workflow_condition_group_id')->in($groups)
+        ->all();
+    }
+
+    /**
+     * Return the node actions
+     * @param int $node
+     * @return Action[]
+     */
+    public function getNodeActions(int $node): array
+    {
+        return $this->actionRepository
+        ->orderBy('sort_order')
+        ->filters([
+            'node' => $node
+        ])
         ->all();
     }
 

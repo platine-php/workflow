@@ -1,0 +1,94 @@
+<?php
+
+/**
+ * Platine Workflow
+ *
+ * Platine Workflow is an activity-based workflow system including the
+ * definition and execution of workflow specifications
+ *
+ * This content is released under the MIT License (MIT)
+ *
+ * Copyright (c) 2020 Platine Workflow
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+/**
+ * @file WorkflowDecisionResult.php
+ *
+ * The Workflow decision result class
+ *
+ *  @package    Platine\Workflow\Result
+ *  @author Platine Developers Team
+ *  @copyright  Copyright (c) 2020
+ *  @license    http://opensource.org/licenses/MIT  MIT License
+ *  @link   http://www.iacademy.cf
+ *  @version 1.0.0
+ *  @filesource
+ */
+declare(strict_types=1);
+
+namespace Platine\Workflow\Result;
+
+use Platine\Workflow\Model\Entity\Node;
+
+/**
+ * @class WorkflowDecisionResult
+ * @package Platine\Workflow\Result
+ */
+class WorkflowDecisionResult extends BaseWorkflowResult
+{
+    /**
+     * The decision next node to return after execution
+     * @var Node|null
+     */
+    protected ?Node $nextNode = null;
+
+    /**
+     * Create new instance
+     * @param bool $endNodeReached
+     * @param Node|null $nextNode
+     */
+    public function __construct(bool $endNodeReached, ?Node $nextNode = null)
+    {
+        parent::__construct($endNodeReached);
+        $this->nextNode = $nextNode;
+    }
+
+
+    /**
+     * Return the next node
+     * @return Node|null
+     */
+    public function getNextNode(): ?Node
+    {
+        return $this->nextNode;
+    }
+
+    /**
+     * Set the next node
+     * @param Node|null $nextNode
+     * @return $this
+     */
+    public function setNextNode(?Node $nextNode): self
+    {
+        $this->nextNode = $nextNode;
+        return $this;
+    }
+}
