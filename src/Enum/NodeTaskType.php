@@ -30,7 +30,7 @@
  */
 
 /**
- * @file NodeType.php
+ * @file NodeTaskType.php
  *
  * The Workflow node task type class
  *

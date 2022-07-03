@@ -55,9 +55,13 @@ use Platine\Workflow\Graph\Link;
 use Platine\Workflow\Graph\Node as GraphNode;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\NodePath;
+use Platine\Workflow\Model\Entity\Result;
+use Platine\Workflow\Model\Entity\RoleUser;
 use Platine\Workflow\Model\Entity\Task;
 use Platine\Workflow\Model\Repository\NodePathRepository;
 use Platine\Workflow\Model\Repository\NodeRepository;
+use Platine\Workflow\Model\Repository\ResultRepository;
+use Platine\Workflow\Model\Repository\RoleUserRepository;
 use Platine\Workflow\Model\Repository\TaskRepository;
 
 /**
@@ -85,25 +89,43 @@ class NodeHelper
     protected TaskRepository $taskRepository;
 
     /**
+     * The role user repository
+     * @var RoleUserRepository
+     */
+    protected RoleUserRepository $roleUserRepository;
+
+    /**
+     * The workflow result instance
+     * @var ResultRepository
+     */
+    protected ResultRepository $resultRepository;
+
+    /**
      * Create new instance
      * @param NodeRepository $nodeRepository
      * @param NodePathRepository $nodePathRepository
      * @param TaskRepository $taskRepository
+     * @param RoleUserRepository $roleUserRepository
+     * @param ResultRepository $resultRepository
      */
     public function __construct(
         NodeRepository $nodeRepository,
         NodePathRepository $nodePathRepository,
-        TaskRepository $taskRepository
+        TaskRepository $taskRepository,
+        RoleUserRepository $roleUserRepository,
+        ResultRepository $resultRepository
     ) {
         $this->nodeRepository = $nodeRepository;
         $this->nodePathRepository = $nodePathRepository;
         $this->taskRepository = $taskRepository;
+        $this->roleUserRepository = $roleUserRepository;
+        $this->resultRepository = $resultRepository;
     }
 
     /**
      * Return the start node for the given workflow
      * @param int $workflow
-     * @param array $filters
+     * @param array<string, mixed> $filters
      * @return Node|null
      */
     public function getStartNode(int $workflow, array $filters = []): ?Node
@@ -117,7 +139,7 @@ class NodeHelper
     /**
      * Return the end node for the given workflow
      * @param int $workflow
-     * @param array $filters
+     * @param array<string, mixed> $filters
      * @return Node|null
      */
     public function getEndNode(int $workflow, array $filters = []): ?Node
@@ -125,6 +147,24 @@ class NodeHelper
         return $this->getNodeType(
             $workflow,
             array_merge($filters, ['type' => NodeType::END])
+        );
+    }
+
+    /**
+     * Return the actors for the given workflow instance
+     * and role
+     * @param int $instance
+     * @param int $role
+     * @param array<string, mixed> $filters
+     * @return RoleUser[]
+     */
+    public function getWorkflowRoleActors(int $instance, int $role, array $filters = []): array
+    {
+        return $this->getActors(
+            $instance,
+            array_merge($filters, [
+                'role' => $role
+            ])
         );
     }
 
@@ -177,25 +217,15 @@ class NodeHelper
      */
     public function getNextNode(int $workflow, int $sourceNode): ?NodePath
     {
-        $query = $this->nodePathRepository->query();
-        return $query->leftJoin('workflows', function (Join $j) {
-            $j->on('workflow_node_paths.workflow_id', 'workflows.id');
-        })
-        ->leftJoin(['workflow_nodes' => 'source_node'], function (Join $j) {
-            $j->on('workflow_node_paths.source_node_id', 'source_node.id');
-        })
-        ->leftJoin(['workflow_nodes' => 'target_node'], function (Join $j) {
-            $j->on('workflow_node_paths.target_node_id', 'target_node.id');
-        })
-        ->where('workflow_node_paths.workflow_id')->is($workflow)
-        ->where('workflow_node_paths.source_node_id')->is($sourceNode)
-        ->get([
-            'workflow_node_paths.*',
-            'target_node.name' => 'target_name',
-            'target_node.task_type' => 'target_task_type',
-            'target_node.type' => 'target_type',
-            'target_node.status' => 'target_status',
-        ]);
+        return $this->nodePathRepository->with([
+            'workflow',
+            'source_node',
+            'target_node',
+        ])
+        ->filters([
+            'source_node' => $sourceNode,
+        ])->
+        ->findBy(['workflow_id' => $workflow]);
     }
 
     /**
@@ -206,26 +236,17 @@ class NodeHelper
      */
     public function getDecisionNodes(int $workflow, int $decisionNode): array
     {
-        $query = $this->nodePathRepository->query();
-        return $query->leftJoin('workflows', function (Join $j) {
-            $j->on('workflow_node_paths.workflow_id', 'workflows.id');
-        })
-        ->leftJoin(['workflow_nodes' => 'source_node'], function (Join $j) {
-            $j->on('workflow_node_paths.source_node_id', 'source_node.id');
-        })
-        ->leftJoin(['workflow_nodes' => 'target_node'], function (Join $j) {
-            $j->on('workflow_node_paths.target_node_id', 'target_node.id');
-        })
-        ->where('workflow_node_paths.workflow_id')->is($workflow)
-        ->where('workflow_node_paths.source_node_id')->is($decisionNode)
-        ->orderBy('workflow_node_paths.sort_order')
-        ->all([
-            'workflow_node_paths.*',
-            'target_node.name' => 'target_name',
-            'target_node.task_type' => 'target_task_type',
-            'target_node.type' => 'target_type',
-            'target_node.status' => 'target_status',
-        ]);
+        return $this->nodePathRepository->with([
+            'workflow',
+            'source_node',
+            'target_node',
+        ])
+        ->filters([
+            'workflow' => $workflow,
+            'source_node' => $decisionNode,
+        ])
+        ->orderBy('sort_order')
+        ->all();
     }
 
     /**
@@ -257,6 +278,22 @@ class NodeHelper
     }
 
     /**
+     * Return the node last result
+     * @param int $instance
+     * @param int $node
+     * @return Result|null
+     */
+    public function getNodeLastResult(int $instance, int $node): ?Result
+    {
+        return $this->resultRepository->filters([
+            'node' => $node,
+            'instance' => $instance,
+        ])
+        ->orderBy('date', 'DESC')
+        ->get();
+    }
+
+    /**
      * Generate the graph (mermaid) for the given workflow
      * @param int $workflow
      * @return string
@@ -284,7 +321,7 @@ class NodeHelper
         foreach ($paths as $nodePath) {
             $sourceNode = null;
             $targetNode = null;
-            
+
             //SOURCE NODE
             if ($this->isStartNode($nodePath->source_type)) {
                 $sourceNode = new GraphNode(
@@ -373,9 +410,9 @@ class NodeHelper
             $graph->addNode($sourceNode);
             $graph->addNode($targetNode);
             $graph->addLink(new Link(
-                $sourceNode, 
-                $targetNode, 
-                (string) $nodePath->name, 
+                $sourceNode,
+                $targetNode,
+                (string) $nodePath->name,
                 Link::ARROW
             ));
         }
@@ -385,15 +422,29 @@ class NodeHelper
 
     /**
      * Return the node type
-     * @param int $workflowId
+     * @param int $workflow
      * @param array<string, mixed> $filters
      * @return Node|null
      */
-    protected function getNodeType(int $workflowId, array $filters = []): ?Node
+    protected function getNodeType(int $workflow, array $filters = []): ?Node
     {
         return $this->nodeRepository->filters($filters)
                                      ->findBy([
-                                        'workflow_id' => $workflowId
+                                        'workflow_id' => $workflow
+                                     ]);
+    }
+
+    /**
+     * Return the actors for the given instance
+     * @param int $instance
+     * @param array<string, mixed> $filters
+     * @return RoleUser[]
+     */
+    protected function getActors(int $instance, array $filters = []): array
+    {
+        return $this->roleUserRepository->filters($filters)
+                                     ->findAllBy([
+                                        'workflow_instance_id' => $instance
                                      ]);
     }
 
