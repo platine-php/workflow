@@ -50,6 +50,7 @@ use Platine\Database\Query\Join;
 use Platine\Workflow\Enum\NodeTaskType;
 use Platine\Workflow\Enum\NodeType;
 use Platine\Workflow\Enum\TaskStatus;
+use Platine\Workflow\Model\Entity\Condition;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\NodePath;
 use Platine\Workflow\Model\Entity\Result;
@@ -273,6 +274,19 @@ class NodeHelper
     }
 
     /**
+     * Return the node condition groups
+     * @param array<int> $groups
+     * @return Condition[]
+     */
+    public function getNodeConditions(array $groups): array
+    {
+        return $this->conditionRepository->query()
+        ->orderBy(['workflow_condition_group_id', 'sort_order'])
+        ->where('workflow_condition_group_id')->in($groups)
+        ->all();
+    }
+
+    /**
      * Return the list of node for decision
      * @param int $workflow
      * @param int $decisionNode
@@ -337,7 +351,7 @@ class NodeHelper
             'workflow_node_id' => $node
         ]);
     }
-    
+
     /**
      * Whether the given type is for start node
      * @param string $type
