@@ -224,7 +224,7 @@ class NodeHelper
         ])
         ->filters([
             'source_node' => $sourceNode,
-        ])->
+        ])
         ->findBy(['workflow_id' => $workflow]);
     }
 
