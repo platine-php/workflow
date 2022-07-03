@@ -50,14 +50,15 @@ use Platine\Database\Query\Join;
 use Platine\Workflow\Enum\NodeTaskType;
 use Platine\Workflow\Enum\NodeType;
 use Platine\Workflow\Enum\TaskStatus;
-use Platine\Workflow\Graph\Graph;
-use Platine\Workflow\Graph\Link;
-use Platine\Workflow\Graph\Node as GraphNode;
+use Platine\Workflow\Model\Entity\Condition;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\NodePath;
 use Platine\Workflow\Model\Entity\Result;
 use Platine\Workflow\Model\Entity\RoleUser;
 use Platine\Workflow\Model\Entity\Task;
+use Platine\Workflow\Model\Repository\ActionRepository;
+use Platine\Workflow\Model\Repository\ConditionGroupRepository;
+use Platine\Workflow\Model\Repository\ConditionRepository;
 use Platine\Workflow\Model\Repository\NodePathRepository;
 use Platine\Workflow\Model\Repository\NodeRepository;
 use Platine\Workflow\Model\Repository\ResultRepository;
@@ -101,25 +102,52 @@ class NodeHelper
     protected ResultRepository $resultRepository;
 
     /**
+     * The node condition repository instance
+     * @var ConditionRepository
+     */
+    protected ConditionRepository $conditionRepository;
+
+    /**
+     * The node condition group
+     * @var ConditionGroupRepository
+     */
+    protected ConditionGroupRepository $conditionGroupRepository;
+
+    /**
+     * The node action repository instance
+     * @var ActionRepository
+     */
+    protected ActionRepository $actionRepository;
+
+    /**
      * Create new instance
      * @param NodeRepository $nodeRepository
      * @param NodePathRepository $nodePathRepository
      * @param TaskRepository $taskRepository
      * @param RoleUserRepository $roleUserRepository
      * @param ResultRepository $resultRepository
+     * @param ConditionRepository $conditionRepository
+     * @param ActionRepository $actionRepository
+     * @param ConditionGroupRepository $conditionGroupRepository
      */
     public function __construct(
         NodeRepository $nodeRepository,
         NodePathRepository $nodePathRepository,
         TaskRepository $taskRepository,
         RoleUserRepository $roleUserRepository,
-        ResultRepository $resultRepository
+        ResultRepository $resultRepository,
+        ConditionRepository $conditionRepository,
+        ActionRepository $actionRepository,
+        ConditionGroupRepository $conditionGroupRepository
     ) {
         $this->nodeRepository = $nodeRepository;
         $this->nodePathRepository = $nodePathRepository;
         $this->taskRepository = $taskRepository;
         $this->roleUserRepository = $roleUserRepository;
         $this->resultRepository = $resultRepository;
+        $this->conditionRepository = $conditionRepository;
+        $this->actionRepository = $actionRepository;
+        $this->conditionGroupRepository = $conditionGroupRepository;
     }
 
     /**
@@ -229,6 +257,24 @@ class NodeHelper
     }
 
     /**
+     * Return the node condition groups
+     * @param int $node
+     * @return array<ConditionGroup>
+     */
+    public function getNodeConditionGroups(int $node): array
+    {
+        return $this->conditionGroupRepository->with([
+            'node',
+            'conditions'
+        ])
+        ->filters([
+            'node' => $node,
+        ])
+        ->orderBy(['sort_order', 'workflow_conditions.sort_order' => 'c_sort_order'])
+        ->all();
+    }
+
+    /**
      * Return the list of node for decision
      * @param int $workflow
      * @param int $decisionNode
@@ -293,132 +339,55 @@ class NodeHelper
             'workflow_node_id' => $node
         ]);
     }
+    
+    /**
+     * Whether the given type is for start node
+     * @param string $type
+     * @return bool
+     */
+    public function isStartNode(string $type): bool
+    {
+        return NodeType::START === $type;
+    }
 
     /**
-     * Generate the graph (mermaid) for the given workflow
-     * @param int $workflow
-     * @return string
+     * Whether the given type is for end node
+     * @param string $type
+     * @return bool
      */
-    public function generateGraph(int $workflow): string
+    public function isEndNode(string $type): bool
     {
-        $paths = $this->getNodePaths($workflow);
+        return NodeType::END === $type;
+    }
 
-        if (empty($paths)) {
-            return '';
-        }
+    /**
+     * Whether the given type is for user node
+     * @param string $type
+     * @return bool
+     */
+    public function isUserNode(string $type): bool
+    {
+        return NodeTaskType::USER === $type;
+    }
 
-        $graph = new Graph([]);
-        $styles = [
-            'startNodeStyle fill:#1767d1,stroke:#333,stroke-width:2px',
-            'endNodeStyle fill:#a019e2,stroke:#333,stroke-width:4px',
-            'decisionNodeStyle fill:#ae2,stroke:#333,stroke-width:2px',
-            'userNodeStyle fill:#e3a571,stroke:#333,stroke-width:2px',
-            'scriptServiceNodeStyle fill:#aef,stroke:#333,stroke-width:2px',
-        ];
-        foreach ($styles as $style) {
-            $graph->addStyle(sprintf('classDef %s', $style));
-        }
+    /**
+     * Whether the given type is for decision node
+     * @param string $type
+     * @return bool
+     */
+    public function isDecisionNode(string $type): bool
+    {
+        return NodeTaskType::DECISION === $type;
+    }
 
-        foreach ($paths as $nodePath) {
-            $sourceNode = null;
-            $targetNode = null;
-
-            //SOURCE NODE
-            if ($this->isStartNode($nodePath->source_type)) {
-                $sourceNode = new GraphNode(
-                    (string) $nodePath->source_node_id,
-                    $nodePath->source_name,
-                    GraphNode::CIRCLE
-                );
-                $graph->addStyle(sprintf(
-                    'class %s startNodeStyle',
-                    $sourceNode->getId()
-                ));
-            } elseif ($this->isDecisionNode($nodePath->source_task_type)) {
-                $sourceNode = new GraphNode(
-                    (string) $nodePath->source_node_id,
-                    $nodePath->source_name,
-                    GraphNode::RHOMBUS
-                );
-                $graph->addStyle(sprintf(
-                    'class %s decisionNodeStyle',
-                    $sourceNode->getId()
-                ));
-            } else {
-                $icon = 'fa:fa-users';
-                if ($this->isScriptServiceNode($nodePath->source_task_type)) {
-                    $icon = 'fa:fa-code';
-                }
-                $sourceNode = new GraphNode(
-                    (string) $nodePath->source_node_id,
-                    sprintf('%s %s', $icon, $nodePath->source_name),
-                    GraphNode::ROUND
-                );
-            }
-
-            //TARGET NODE
-            if ($this->isEndNode($nodePath->target_type)) {
-                $targetNode = new GraphNode(
-                    (string) $nodePath->target_node_id,
-                    $nodePath->target_name,
-                    GraphNode::CIRCLE
-                );
-                $graph->addStyle(sprintf(
-                    'class %s endNodeStyle',
-                    $targetNode->getId()
-                ));
-            } elseif ($this->isDecisionNode($nodePath->target_task_type)) {
-                $targetNode = new GraphNode(
-                    (string) $nodePath->target_node_id,
-                    $nodePath->target_name,
-                    GraphNode::RHOMBUS
-                );
-                $graph->addStyle(sprintf(
-                    'class %s decisionNodeStyle',
-                    $targetNode->getId()
-                ));
-            } else {
-                $icon = 'fa:fa-users';
-                if ($this->isScriptServiceNode($nodePath->target_task_type)) {
-                    $icon = 'fa:fa-code';
-                }
-                $targetNode = new GraphNode(
-                    (string) $nodePath->target_node_id,
-                    sprintf('%s %s', $icon, $nodePath->target_name),
-                    GraphNode::ROUND
-                );
-            }
-
-            if (
-                $this->isUserNode($nodePath->source_task_type)
-                && !$this->isStartNode($nodePath->source_type)
-                && !$this->isEndNode($nodePath->source_type)
-            ) {
-                $graph->addStyle(sprintf(
-                    'class %s userNodeStyle',
-                    $sourceNode->getId()
-                ));
-            }
-
-            if ($this->isScriptServiceNode($nodePath->source_task_type)) {
-                $graph->addStyle(sprintf(
-                    'class %s scriptServiceNodeStyle',
-                    $sourceNode->getId()
-                ));
-            }
-
-            //ADD TO THE GRAPH
-            $graph->addNode($sourceNode);
-            $graph->addNode($targetNode);
-            $graph->addLink(new Link(
-                $sourceNode,
-                $targetNode,
-                (string) $nodePath->name,
-                Link::ARROW
-            ));
-        }
-
-        return $graph->render();
+    /**
+     * Whether the given type is for script/service node
+     * @param string $type
+     * @return bool
+     */
+    public function isScriptServiceNode(string $type): bool
+    {
+        return NodeTaskType::SCRIPT_SERVICE === $type;
     }
 
     /**
@@ -448,55 +417,5 @@ class NodeHelper
                                      ->findAllBy([
                                         'workflow_instance_id' => $instance
                                      ]);
-    }
-
-    /**
-     * Whether the given type is for start node
-     * @param string $type
-     * @return bool
-     */
-    protected function isStartNode(string $type): bool
-    {
-        return NodeType::START === $type;
-    }
-
-    /**
-     * Whether the given type is for end node
-     * @param string $type
-     * @return bool
-     */
-    protected function isEndNode(string $type): bool
-    {
-        return NodeType::END === $type;
-    }
-
-    /**
-     * Whether the given type is for user node
-     * @param string $type
-     * @return bool
-     */
-    protected function isUserNode(string $type): bool
-    {
-        return NodeTaskType::USER === $type;
-    }
-
-    /**
-     * Whether the given type is for decision node
-     * @param string $type
-     * @return bool
-     */
-    protected function isDecisionNode(string $type): bool
-    {
-        return NodeTaskType::DECISION === $type;
-    }
-
-    /**
-     * Whether the given type is for script/service node
-     * @param string $type
-     * @return bool
-     */
-    protected function isScriptServiceNode(string $type): bool
-    {
-        return NodeTaskType::SCRIPT_SERVICE === $type;
     }
 }

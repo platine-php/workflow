@@ -57,30 +57,28 @@ use Platine\Workflow\Helper\NodeHelper;
  */
 class Workflow
 {
-    
     /**
      * The logger instance
      * @var LoggerInterface
      */
     protected LoggerInterface $logger;
-    
+
     /**
      * The node helper instance
      * @var NodeHelper
      */
     protected NodeHelper $nodeHelper;
-    
+
     /**
      * Create new instance
      * @param LoggerInterface $logger
      * @param NodeHelper $nodeHelper
      */
     public function __construct(
-        LoggerInterface $logger, 
+        LoggerInterface $logger,
         NodeHelper $nodeHelper
     ) {
         $this->logger = $logger;
         $this->nodeHelper = $nodeHelper;
     }
-
 }

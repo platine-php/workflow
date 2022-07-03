@@ -20,6 +20,7 @@
 	
     "require": {
         "php": "^7.4 || ^8",
+        "platine-php/expression": "1.0.x-dev",
         "platine-php/logger": "1.0.x-dev",
         "platine-php/orm": "1.0.x-dev"
     },

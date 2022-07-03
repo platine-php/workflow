@@ -63,6 +63,7 @@ class ConditionGroup extends Entity
     {
          $mapper->table('workflow_condition_groups');
          $mapper->relation('node')->belongsTo(Node::class);
+         $mapper->relation('conditions')->hasMany(Condition::class);
          $mapper->useTimestamp();
          $mapper->casts([
             'created_at' => 'date',
