@@ -286,11 +286,12 @@ class NodeHelper
     public function getNodeLastResult(int $instance, int $node): ?Result
     {
         return $this->resultRepository->filters([
-            'node' => $node,
             'instance' => $instance,
         ])
         ->orderBy('date', 'DESC')
-        ->get();
+        ->findBy([
+            'workflow_node_id' => $node
+        ]);
     }
 
     /**
@@ -443,6 +444,7 @@ class NodeHelper
     protected function getActors(int $instance, array $filters = []): array
     {
         return $this->roleUserRepository->filters($filters)
+                                     ->with(['user', 'role'])
                                      ->findAllBy([
                                         'workflow_instance_id' => $instance
                                      ]);
