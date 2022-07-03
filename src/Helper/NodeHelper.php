@@ -281,7 +281,7 @@ class NodeHelper
     public function getNodeConditions(array $groups): array
     {
         return $this->conditionRepository->query()
-        ->orderBy(['workflow_condition_group_id', 'sort_order'])
+        ->orderBy('sort_order')
         ->where('workflow_condition_group_id')->in($groups)
         ->all();
     }
