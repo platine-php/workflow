@@ -53,7 +53,6 @@ use Platine\Workflow\Enum\TaskStatus;
 use Platine\Workflow\Model\Entity\Action;
 use Platine\Workflow\Model\Entity\Condition;
 use Platine\Workflow\Model\Entity\Node;
-use Platine\Workflow\Model\Entity\NodePath;
 use Platine\Workflow\Model\Entity\Result;
 use Platine\Workflow\Model\Entity\RoleUser;
 use Platine\Workflow\Model\Entity\Task;
@@ -219,11 +218,11 @@ class NodeHelper
      * Return the target node for the given source node
      * @param int $workflow
      * @param int $sourceNode
-     * @return NodePath|null
+     * @return Node|null
      */
-    public function getNextNode(int $workflow, int $sourceNode): ?NodePath
+    public function getNextNode(int $workflow, int $sourceNode): ?Node
     {
-        return $this->nodePathRepository->with([
+        $nodePath = $this->nodePathRepository->with([
             'workflow',
             'source_node',
             'target_node',
@@ -232,6 +231,8 @@ class NodeHelper
             'source_node' => $sourceNode,
         ])
         ->findBy(['workflow_id' => $workflow]);
+
+        return $nodePath->target_node ?? null;
     }
 
     /**

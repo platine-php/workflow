@@ -55,10 +55,7 @@ use Platine\Workflow\Helper\NodeHelper;
 use Platine\Workflow\Model\Entity\Instance;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\Workflow as WorkflowEntity;
-use Platine\Workflow\Result\WorkflowDecisionResult;
 use Platine\Workflow\Result\WorkflowResult;
-use Platine\Workflow\Result\WorkflowScriptServiceResult;
-use Platine\Workflow\Result\WorkflowUserResult;
 
 /**
  * @class Workflow
@@ -101,6 +98,18 @@ class Workflow
      * @var Node|null
      */
     protected ?Node $currentNode = null;
+
+    /**
+     * Whether to stop workflow execution inside loop
+     * @var bool
+     */
+    protected bool $stop = false;
+
+    /**
+     * Whether the end not is reached
+     * @var bool
+     */
+    protected bool $endNodeReached = false;
 
     /**
      * Create new instance
@@ -195,119 +204,169 @@ class Workflow
     protected function executeCurrentNode(): WorkflowResult
     {
         $workflow = $this->workflowEntity;
-        $endNodeReached = false; //if already at the end node
-        $stop = false; //if need sort out the loop
 
-        while (! $stop && ! $endNodeReached) {
+        while (!$this->stop && ! $this->endNodeReached) {
             $node = $this->currentNode;
-            $this->logger->info('Start execution of node [{node}], type [{type}], [{task_type}], status [{status}]', [
-                'node' => $node->name,
-                'type' => $node->type,
-                'task_type' => $node->task_type,
-                'status' => $node->status,
-            ]);
-
-            $nextNode = $this->nodeHelper->getNextNode($workflow->id, (int) $node->id);
-            if ($nextNode === null) {
-                $this->logger->info('Can not find the next node for the previous node [{node}]', [
-                    'node' => $node->name
+            if ($node === null) {
+                $this->logger->info('Current node is null for the workflow [{workflow}]', [
+                    'workflow' => $workflow->name
                 ]);
-                $endNodeReached = true;
+
+                $this->stop = true;
                 break;
             }
+
+            $this->logger->info(
+                'Start execution of node [{node}], id [{id}], type [{type}], task type [{task_type}], status [{status}]',
+                [
+                    'node' => $node->name,
+                    'id' => $node->id,
+                    'type' => $node->type,
+                    'task_type' => $node->task_type,
+                    'status' => $node->status,
+                ]
+            );
 
             if ($node->status !== NodeStatus::ACTIVE) {
                 $this->logger->info('Node [{node}] status is not active ignore it', [
                     'node' => $node->name,
                 ]);
-                $this->currentNode = $nextNode;
+                $this->moveCurrentNodeToNext();
                 continue;
             }
 
+            if ($this->nodeHelper->isStartNode($node->type)) {
+                $this->executeStartNode();
+                continue;
+            }
+
+            if ($this->nodeHelper->isEndNode($node->type)) {
+                $this->executeEndNode();
+            }
+
             if ($this->nodeHelper->isUserNode($node->task_type)) {
-                $result = $this->executeUserNode();
-                if ($result->isEndNodeReached()) {
-                    $this->logger->info('User Node [{node}] does not have actors', [
-                        'node' => $node->name,
-                    ]);
-                    break;
-                }
-                $stop = true;
+                $this->executeUserNode();
                 break;
             }
 
             if ($this->nodeHelper->isDecisionNode($node->task_type)) {
-                $result = $this->executeDecisionNode();
-                if ($result->getNextNode() === null) {
-                    $this->logger->info('No nodes match the conditions for decision node [{node}]', [
-                        'node' => $node->name,
-                    ]);
-                    $stop = true;
-                    $endNodeReached = true;
-                } else {
-                    $this->currentNode = $result->getNextNode();
-                }
+                $this->executeDecisionNode();
+                continue;
             }
 
             if ($this->nodeHelper->isScriptServiceNode($node->task_type)) {
-                $result = $this->executeScriptServiceNode();
-                if (!$result->isSuccess()) {
-                    $this->logger->info('Script/Service Node [{node}] does not', [
-                        'node' => $node->name,
-                    ]);
-                    break;
-                }
+                $this->executeScriptServiceNode();
+                continue;
             }
-            $this->logger->info('End execution of node [{node}]', [
-                'node' => $node->name,
-            ]);
         }
 
-        if ($endNodeReached) {
-            $this->executeEndNode();
+        if ($this->endNodeReached) {
+            $this->executeEndNodeActions();
         }
 
-        return new WorkflowResult($endNodeReached);
+        return new WorkflowResult($this->endNodeReached);
     }
 
     /**
      * Execute the user task workflow
-     * @return WorkflowUserResult
+     * @return void
      */
-    protected function executeUserNode(): WorkflowUserResult
+    protected function executeUserNode(): void
     {
-        return new WorkflowUserResult(false);
+        $this->logger->info('End execution of node [{node}]', [
+            'node' => $this->currentNode->name,
+        ]);
+        $this->moveCurrentNodeToNext();
+        $this->stop = true;
     }
 
     /**
      * Execute decision and return the result
-     * @return WorkflowDecisionResult
+     * @return void
      */
-    protected function executeDecisionNode(): WorkflowDecisionResult
+    protected function executeDecisionNode(): void
     {
-        return new WorkflowDecisionResult(false, null);
+        $this->logger->info('End execution of node [{node}]', [
+            'node' => $this->currentNode->name,
+        ]);
+        $this->moveCurrentNodeToNext();
     }
 
     /**
      * Execute script/service and return the result
-     * @return WorkflowScriptServiceResult
+     * @return void
      */
-    protected function executeScriptServiceNode(): WorkflowScriptServiceResult
+    protected function executeScriptServiceNode(): void
     {
-        return new WorkflowScriptServiceResult(false, true);
+        $this->logger->info('End execution of node [{node}]', [
+            'node' => $this->currentNode->name,
+        ]);
+        $this->moveCurrentNodeToNext();
+    }
+
+    /**
+     * Execute start node
+     * @return void
+     */
+    protected function executeStartNode(): void
+    {
+        $this->logger->info('End execution of node [{node}]', [
+            'node' => $this->currentNode->name,
+        ]);
+        $this->moveCurrentNodeToNext();
     }
 
     /**
      * Execute end node
-     * @return WorkflowResult
+     * @return void
      */
-    protected function executeEndNode(): WorkflowResult
+    protected function executeEndNode(): void
     {
-        $node = $this->nodeHelper->getEndNode($this->workflowEntity->id);
-        if ($node !== null) {
-            return new WorkflowResult(true);
+        $this->endNodeReached = true;
+        $this->stop = true;
+        $this->executeNodeActions($this->currentNode);
+        $this->logger->info('End execution of node [{node}]', [
+            'node' => $this->currentNode->name,
+        ]);
+    }
+
+    /**
+     * Execute end node actions
+     * @return void
+     */
+    protected function executeEndNodeActions(): void
+    {
+    }
+
+    protected function moveCurrentNodeToNext(): void
+    {
+        if ($this->currentNode === null) {
+            $this->logger->info('Current node is null for the workflow [{workflow}]', [
+                'workflow' => $this->workflowEntity->name
+            ]);
+            return;
         }
-        
-        return new WorkflowResult(true);
+        $this->currentNode = $this->nodeHelper->getNextNode(
+            (int) $this->workflowEntity->id,
+            (int) $this->currentNode->id
+        );
+    }
+
+    /**
+     * Execute node conditions and return the result
+     * @param Node $node
+     * @return mixed
+     */
+    protected function executeNodeConditions(Node $node)
+    {
+    }
+
+    /**
+     * Execute node actions
+     * @param Node $node
+     * @return void
+     */
+    protected function executeNodeActions(Node $node): void
+    {
     }
 }
