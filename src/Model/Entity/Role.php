@@ -62,6 +62,7 @@ class Role extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_roles');
+         $mapper->name('workflow_role');
          $mapper->relation('workflow')->belongsTo(Workflow::class);
          $mapper->useTimestamp();
          $mapper->casts([

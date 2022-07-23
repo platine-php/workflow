@@ -62,6 +62,7 @@ class Result extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_results');
+         $mapper->name('workflow_result');
          $mapper->relation('node')->belongsTo(Node::class);
          $mapper->relation('instance')->belongsTo(Instance::class);
          $mapper->casts([

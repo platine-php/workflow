@@ -61,6 +61,7 @@ class Entity extends OrmEntity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_entities');
+         $mapper->name('workflow_entity');
          $mapper->useTimestamp();
          $mapper->casts([
             'created_at' => 'date',

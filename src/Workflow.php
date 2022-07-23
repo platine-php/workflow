@@ -52,10 +52,10 @@ use Platine\Logger\LoggerInterface;
 use Platine\Orm\Entity;
 use Platine\Workflow\Enum\NodeStatus;
 use Platine\Workflow\Helper\NodeHelper;
+use Platine\Workflow\Helper\WorkflowExecutor;
 use Platine\Workflow\Model\Entity\Instance;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\Workflow as WorkflowEntity;
-use Platine\Workflow\Result\WorkflowResult;
 
 /**
  * @class Workflow
@@ -98,30 +98,29 @@ class Workflow
      * @var Node|null
      */
     protected ?Node $currentNode = null;
-
+    
     /**
-     * Whether to stop workflow execution inside loop
-     * @var bool
+     * The workflow executor
+     * @var WorkflowExecutor
      */
-    protected bool $stop = false;
-
-    /**
-     * Whether the end not is reached
-     * @var bool
-     */
-    protected bool $endNodeReached = false;
+    protected WorkflowExecutor $executor;
 
     /**
      * Create new instance
      * @param LoggerInterface $logger
      * @param NodeHelper $nodeHelper
+     * @param WorkflowExecutor $executor
      */
     public function __construct(
         LoggerInterface $logger,
-        NodeHelper $nodeHelper
+        NodeHelper $nodeHelper,
+        WorkflowExecutor $executor
     ) {
         $this->logger = $logger;
         $this->nodeHelper = $nodeHelper;
+        $this->executor = $executor;
+        
+        $this->logger->setChannel('Workflow');
     }
 
     /**
@@ -159,10 +158,10 @@ class Workflow
 
     /**
      * Set the current node
-     * @param Node $currentNode
+     * @param Node|null $currentNode
      * @return $this
      */
-    public function setCurrentNode(Node $currentNode)
+    public function setCurrentNode(?Node $currentNode): self
     {
         $this->currentNode = $currentNode;
         return $this;
@@ -171,9 +170,9 @@ class Workflow
 
     /**
      * Execute the workflow
-     * @return WorkflowResult
+     * @return void
      */
-    public function execute(): WorkflowResult
+    public function execute(): void
     {
         $workflow = $this->workflowEntity;
         $this->logger->info('Start execution of workflow [{workflow}]', [
@@ -190,29 +189,27 @@ class Workflow
                     'workflow' => $workflow->name
                 ]);
 
-                return new WorkflowResult(true);
+                return;
             }
         }
 
-        return $this->executeCurrentNode();
+        $this->executeWorkflow();
     }
 
     /**
      * Execute the workflow node
-     * @return WorkflowResult
+     * @return void
      */
-    protected function executeCurrentNode(): WorkflowResult
+    protected function executeWorkflow(): void
     {
         $workflow = $this->workflowEntity;
 
-        while (!$this->stop && ! $this->endNodeReached) {
+        while (true) {
             $node = $this->currentNode;
             if ($node === null) {
                 $this->logger->info('Current node is null for the workflow [{workflow}]', [
                     'workflow' => $workflow->name
                 ]);
-
-                $this->stop = true;
                 break;
             }
 
@@ -242,6 +239,7 @@ class Workflow
 
             if ($this->nodeHelper->isEndNode($node->type)) {
                 $this->executeEndNode();
+                break;
             }
 
             if ($this->nodeHelper->isUserNode($node->task_type)) {
@@ -259,12 +257,6 @@ class Workflow
                 continue;
             }
         }
-
-        if ($this->endNodeReached) {
-            $this->executeEndNodeActions();
-        }
-
-        return new WorkflowResult($this->endNodeReached);
     }
 
     /**
@@ -273,11 +265,26 @@ class Workflow
      */
     protected function executeUserNode(): void
     {
+        $actors = $this->nodeHelper->getWorkflowRoleActors(
+            (int) $this->instance->id,
+            (int) $this->currentNode->workflow_role_id
+        );
+        if (empty($actors)) {
+            $this->logger->info('No actors for user node [{node}]', [
+                'node' => $this->currentNode->name,
+            ]);
+            $this->currentNode = null;
+            return;
+        }
+        $this->nodeHelper->executeUserNode(
+            $this->instance,
+            $this->currentNode,
+            $actors
+        );
         $this->logger->info('End execution of node [{node}]', [
             'node' => $this->currentNode->name,
         ]);
-        $this->moveCurrentNodeToNext();
-        $this->stop = true;
+        $this->currentNode = null;
     }
 
     /**
@@ -286,10 +293,73 @@ class Workflow
      */
     protected function executeDecisionNode(): void
     {
+        $node = null;
+        $defaultNode = null;
+        $decisionNode = $this->currentNode;
+        $nodes = $this->nodeHelper->getDecisionNodes(
+            $this->workflowEntity->id, 
+            $this->currentNode->id
+        );
+        if(empty($nodes)){
+            $this->logger->info('No node path for decision node [{node}], workflow terminated', [
+                'node' => $this->currentNode->name,
+            ]); 
+        } else if(count($nodes) === 1){
+            $this->logger->info('Found only one destination for decision node [{node}], just use it', [
+                'node' => $this->currentNode->name,
+            ]); 
+            $node = $nodes[0]->target_node;
+        } else {
+            $this->logger->info('Check for node path of decision node [{node}], total path [{total}]', [
+                'node' => $this->currentNode->name,
+                'total' => count($nodes),
+            ]);
+            foreach ($nodes as $n){
+               if($n->target_node->status !== NodeStatus::ACTIVE){
+                    $this->logger->info('Node path [{node}] is not active ignore it', [
+                        'node' => $n->target_node->name,
+                    ]); 
+                   continue;
+               }
+               if($defaultNode === null && $n->is_default){
+                   $defaultNode = $n->target_node;
+               } 
+               $this->logger->info('Check for node path [{node}]', [
+                    'node' => $n->target_node->name,
+                ]); 
+               $result = $this->executeNodeConditions($n->target_node);
+                if($result === false){
+                   $this->logger->info('Condition for node [{node}] does not match', [
+                        'node' => $n->target_node->name,
+                    ]); 
+                } else {
+                    $this->logger->info('Condition for node [{node}] match use it', [
+                        'node' => $n->target_node->name,
+                    ]); 
+                    $node = $n->target_node;
+                    break;
+                }
+            }
+        }
+        
+        if($node === null && $defaultNode){
+            $this->logger->info('No nodes conditions match for decision node [{node}] use the default node [{dnode}]', [
+                'node' => $this->currentNode->name,
+                'dnode' => $defaultNode->name,
+            ]);
+            $node = $defaultNode;
+        }
+        
+        if($node !== null){
+            $this->executeNodeActions($node);
+            $this->currentNode = $node;
+            //We already execute this node just move to the next
+            $this->moveCurrentNodeToNext();
+        }
+        
         $this->logger->info('End execution of node [{node}]', [
-            'node' => $this->currentNode->name,
+            'node' => $decisionNode->name,
         ]);
-        $this->moveCurrentNodeToNext();
     }
 
     /**
@@ -298,9 +368,21 @@ class Workflow
      */
     protected function executeScriptServiceNode(): void
     {
+        $result = $this->executeNodeConditions($this->currentNode);
+        if($result === false){
+           $this->logger->info('Condition for node [{node}] does not match', [
+                'node' => $this->currentNode->name,
+            ]); 
+        } else {
+            $this->executeNodeActions($this->currentNode);
+        }
         $this->logger->info('End execution of node [{node}]', [
             'node' => $this->currentNode->name,
         ]);
+        if($result === false){
+            $this->currentNode = null;
+            return;
+        }
         $this->moveCurrentNodeToNext();
     }
 
@@ -310,6 +392,14 @@ class Workflow
      */
     protected function executeStartNode(): void
     {
+        $result = $this->executeNodeConditions($this->currentNode);
+        if($result === false){
+           $this->logger->info('Condition for node [{node}] does not match', [
+                'node' => $this->currentNode->name,
+            ]); 
+        } else {
+            $this->executeNodeActions($this->currentNode);
+        }
         $this->logger->info('End execution of node [{node}]', [
             'node' => $this->currentNode->name,
         ]);
@@ -322,12 +412,19 @@ class Workflow
      */
     protected function executeEndNode(): void
     {
-        $this->endNodeReached = true;
-        $this->stop = true;
-        $this->executeNodeActions($this->currentNode);
+        $result = $this->executeNodeConditions($this->currentNode);
+        if($result === false){
+           $this->logger->info('Condition for node [{node}] does not match', [
+                'node' => $this->currentNode->name,
+            ]); 
+        } else {
+            $this->executeNodeActions($this->currentNode);
+        }
+        $this->executeEndNodeActions();
         $this->logger->info('End execution of node [{node}]', [
             'node' => $this->currentNode->name,
         ]);
+        $this->currentNode = null;
     }
 
     /**
@@ -338,6 +435,10 @@ class Workflow
     {
     }
 
+    /**
+     * Move the pointer to next node
+     * @return void
+     */
     protected function moveCurrentNodeToNext(): void
     {
         if ($this->currentNode === null) {
@@ -359,6 +460,29 @@ class Workflow
      */
     protected function executeNodeConditions(Node $node)
     {
+        $this->logger->info('Execute conditions for node [{node}] ', [
+            'node' => $node->name
+        ]);
+        $conditions = $this->nodeHelper->getNodeConditionExpressions($node->id);
+        if (empty($conditions)) {
+            $this->logger->info('No conditions for node [{node}] return true', [
+                'node' => $node->name
+            ]);
+            return true;
+        }
+
+        $this->logger->info('Conditions for node [{node}] is [{conditions}]', [
+            'node' => $node->name,
+            'conditions' => $conditions,
+        ]);
+        
+        $result = $this->executor->execute($conditions);
+        $this->logger->info('Condition result for node [{node}] is [{result}]', [
+            'node' => $node->name,
+            'result' => $result,
+        ]);
+        
+        return $result;
     }
 
     /**
@@ -368,5 +492,8 @@ class Workflow
      */
     protected function executeNodeActions(Node $node): void
     {
+        $this->logger->info('Execute actions for node [{node}] ', [
+            'node' => $node->name
+        ]);
     }
 }

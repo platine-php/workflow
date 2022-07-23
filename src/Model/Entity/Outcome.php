@@ -62,6 +62,7 @@ class Outcome extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_outcomes');
+         $mapper->name('workflow_outcome');
          $mapper->relation('node')->belongsTo(Node::class);
          $mapper->useTimestamp();
          $mapper->casts([

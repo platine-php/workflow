@@ -21,15 +21,6 @@ class AddWorkflowNodePathsTable20220701131014 extends AbstractMigration
 
             $table->string('name');
 
-            $table->string('operand1')
-                   ->description('the 1st operand to be used for comparaison');
-
-            $table->string('operator')
-                   ->description('the operator to be used');
-
-            $table->string('operand2')
-                   ->description('the 2nd operand to be used for comparaison');
-
             $table->enum('is_default', ['Y', 'N'])
                     ->defaultValue('N')
                     ->notNull();

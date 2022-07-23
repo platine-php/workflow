@@ -62,6 +62,7 @@ class Field extends OrmEntity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_entity_fields');
+         $mapper->name('workflow_entity_field');
          $mapper->relation('entity')->belongsTo(Entity::class);
          $mapper->useTimestamp();
          $mapper->casts([

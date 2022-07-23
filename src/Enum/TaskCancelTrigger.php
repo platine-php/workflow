@@ -50,7 +50,7 @@ namespace Platine\Workflow\Enum;
  * @class TaskCancelTrigger
  * @package Platine\Workflow\Enum
  */
-class TaskStatus
+class TaskCancelTrigger
 {
     /**
      * User

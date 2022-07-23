@@ -63,6 +63,7 @@ class Instance extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_instances');
+         $mapper->name('workflow_instance');
          $mapper->relation('workflow')->belongsTo(Workflow::class);
          //TODO change it in sub class
          $mapper->relation('user')->belongsTo(Entity::class);

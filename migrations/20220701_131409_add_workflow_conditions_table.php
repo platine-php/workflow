@@ -13,7 +13,9 @@ class AddWorkflowConditionsTable20220701131409 extends AbstractMigration
     {
       //Action when migrate up
         $this->create('workflow_conditions', function (CreateTable $table) {
-            $table->integer('id')
+            //issue with query that return custom columns
+            // Using join the field "id" will be ambigus
+            $table->integer('workflow_condition_id')
                   ->autoincrement()
                  ->primary();
 

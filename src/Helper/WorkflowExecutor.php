@@ -30,11 +30,11 @@
  */
 
 /**
- * @file WorkflowUserResult.php
+ * @file WorkflowExecutor.php
  *
- * The Workflow user task result class
+ * The Workflow executor helper class
  *
- *  @package    Platine\Workflow\Result
+ *  @package    Platine\Workflow\Helper
  *  @author Platine Developers Team
  *  @copyright  Copyright (c) 2020
  *  @license    http://opensource.org/licenses/MIT  MIT License
@@ -44,12 +44,15 @@
  */
 declare(strict_types=1);
 
-namespace Platine\Workflow\Result;
+namespace Platine\Workflow\Helper;
+
+use Platine\Expression\Executor;
 
 /**
- * @class WorkflowUserResult
- * @package Platine\Workflow\Result
+ * @class WorkflowExecutor
+ * @package Platine\Workflow\Helper
  */
-class WorkflowUserResult extends BaseWorkflowResult
+class WorkflowExecutor extends Executor
 {
+    
 }

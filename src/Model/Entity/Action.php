@@ -62,6 +62,7 @@ class Action extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_actions');
+         $mapper->name('workflow_action');
          $mapper->relation('node')->belongsTo(Node::class);
          $mapper->useTimestamp();
          $mapper->casts([

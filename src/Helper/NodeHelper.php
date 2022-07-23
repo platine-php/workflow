@@ -46,18 +46,19 @@ declare(strict_types=1);
 
 namespace Platine\Workflow\Helper;
 
+use DateTime;
 use Platine\Database\Query\Join;
 use Platine\Workflow\Enum\NodeTaskType;
 use Platine\Workflow\Enum\NodeType;
 use Platine\Workflow\Enum\TaskStatus;
 use Platine\Workflow\Model\Entity\Action;
 use Platine\Workflow\Model\Entity\Condition;
+use Platine\Workflow\Model\Entity\Instance;
 use Platine\Workflow\Model\Entity\Node;
 use Platine\Workflow\Model\Entity\Result;
 use Platine\Workflow\Model\Entity\RoleUser;
 use Platine\Workflow\Model\Entity\Task;
 use Platine\Workflow\Model\Repository\ActionRepository;
-use Platine\Workflow\Model\Repository\ConditionGroupRepository;
 use Platine\Workflow\Model\Repository\ConditionRepository;
 use Platine\Workflow\Model\Repository\NodePathRepository;
 use Platine\Workflow\Model\Repository\NodeRepository;
@@ -108,12 +109,6 @@ class NodeHelper
     protected ConditionRepository $conditionRepository;
 
     /**
-     * The node condition group
-     * @var ConditionGroupRepository
-     */
-    protected ConditionGroupRepository $conditionGroupRepository;
-
-    /**
      * The node action repository instance
      * @var ActionRepository
      */
@@ -128,7 +123,6 @@ class NodeHelper
      * @param ResultRepository $resultRepository
      * @param ConditionRepository $conditionRepository
      * @param ActionRepository $actionRepository
-     * @param ConditionGroupRepository $conditionGroupRepository
      */
     public function __construct(
         NodeRepository $nodeRepository,
@@ -137,8 +131,7 @@ class NodeHelper
         RoleUserRepository $roleUserRepository,
         ResultRepository $resultRepository,
         ConditionRepository $conditionRepository,
-        ActionRepository $actionRepository,
-        ConditionGroupRepository $conditionGroupRepository
+        ActionRepository $actionRepository
     ) {
         $this->nodeRepository = $nodeRepository;
         $this->nodePathRepository = $nodePathRepository;
@@ -147,7 +140,6 @@ class NodeHelper
         $this->resultRepository = $resultRepository;
         $this->conditionRepository = $conditionRepository;
         $this->actionRepository = $actionRepository;
-        $this->conditionGroupRepository = $conditionGroupRepository;
     }
 
     /**
@@ -225,7 +217,6 @@ class NodeHelper
         $nodePath = $this->nodePathRepository->with([
             'workflow',
             'source_node',
-            'target_node',
         ])
         ->filters([
             'source_node' => $sourceNode,
@@ -238,31 +229,62 @@ class NodeHelper
     /**
      * Return the node condition groups
      * @param int $node
-     * @return array<ConditionGroup>
+     * @return Condition[]
      */
-    public function getNodeConditionGroups(int $node): array
+    public function getNodeConditions(int $node): array
     {
-        return $this->conditionGroupRepository->with([
-            'node',
+        $query = $this->conditionRepository->query();
+        return $query->join('workflow_condition_groups', function (Join $j) {
+            $j->on(
+                'workflow_conditions.workflow_condition_group_id',
+                'workflow_condition_groups.id'
+            );
+        })
+        ->orderBy([
+           'workflow_condition_groups.sort_order',
+            'workflow_conditions.sort_order'
         ])
-        ->filters([
-            'node' => $node,
-        ])
-        ->orderBy('sort_order')
-        ->all();
+        ->where('workflow_condition_groups.workflow_node_id')->is($node)
+        ->all([
+            'workflow_conditions.*',
+            'workflow_condition_groups.sort_order' => 'cg_sort_order',
+            'workflow_condition_groups.id' => 'cg_id',
+        ]);
     }
 
     /**
-     * Return the node condition groups
-     * @param array<int> $groups
-     * @return Condition[]
+     * Return the node condition expressions
+     * @param int $node
+     * @return string|null
      */
-    public function getNodeConditions(array $groups): array
+    public function getNodeConditionExpressions(int $node): ?string
     {
-        return $this->conditionRepository->query()
-        ->orderBy('sort_order')
-        ->where('workflow_condition_group_id')->in($groups)
-        ->all();
+        $conditions = $this->getNodeConditions($node);
+
+        if (empty($conditions)) {
+            return null;
+        }
+        $groups = [];
+        foreach ($conditions as $c) {
+            $groups[$c->cg_id][] = sprintf(
+                '%s %s %s',
+                $c->operand1,
+                $c->operator,
+                $c->operand2
+            );
+        }
+        
+        $groupExpressions = [];
+        foreach ($groups as $c) {
+            $groupExpressions[] = implode(' || ', $c);
+        }
+        
+        $expression = [];
+        foreach ($groupExpressions as $e) {
+            $expression[] = sprintf('(%s)', $e);
+        }
+        
+        return implode(' && ', $expression);
     }
 
     /**
@@ -344,6 +366,30 @@ class NodeHelper
         ->findBy([
             'workflow_node_id' => $node
         ]);
+    }
+
+    /**
+     * Execute user task
+     * @param Instance $instance
+     * @param Node $node
+     * @param array<RoleUser> $actors
+     * @return void
+     */
+    public function executeUserNode(Instance $instance, Node $node, array $actors): void
+    {
+        foreach ($actors as $actor) {
+            //TODO optimize the create of new entity
+            $task = $this->taskRepository->create([
+                'status' => TaskStatus::PROCESSING,
+                'comment' => null,
+                'start_date' => new DateTime('now'),
+            ]);
+            $task->instance = $instance;
+            $task->node = $node;
+            $task->user = $actor->user;
+
+            $this->taskRepository->save($task);
+        }
     }
 
     /**

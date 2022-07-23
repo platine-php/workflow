@@ -63,6 +63,7 @@ class NodePath extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_node_paths');
+         $mapper->name('workflow_node_path');
          $mapper->primaryKey('workflow_node_path_id');
          $mapper->relation('source_node')->belongsTo(Node::class, new ForeignKey([
             'id' => 'source_node_id'

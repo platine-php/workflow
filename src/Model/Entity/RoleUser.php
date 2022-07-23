@@ -62,6 +62,7 @@ class RoleUser extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_roles_users');
+         $mapper->name('workflow_roles_user');
          $mapper->relation('role')->belongsTo(Role::class);
          $mapper->relation('instance')->belongsTo(Instance::class);
          //TODO change it in sub class

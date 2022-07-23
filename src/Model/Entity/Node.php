@@ -62,6 +62,7 @@ class Node extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_nodes');
+         $mapper->name('workflow_node');
          $mapper->relation('role')->belongsTo(Role::class);
          $mapper->relation('workflow')->belongsTo(Workflow::class);
 

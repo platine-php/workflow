@@ -62,6 +62,8 @@ class Condition extends Entity
     public static function mapEntity(EntityMapperInterface $mapper): void
     {
          $mapper->table('workflow_conditions');
+         $mapper->primaryKey('workflow_condition_id');
+         $mapper->name('workflow_condition');
          $mapper->relation('condition_group')->belongsTo(ConditionGroup::class);
          $mapper->useTimestamp();
          $mapper->casts([
